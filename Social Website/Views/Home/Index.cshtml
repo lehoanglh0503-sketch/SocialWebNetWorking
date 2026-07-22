@@ -1,0 +1,310 @@
+@model IEnumerable<Social_Website.Models.Post>
+@{
+    ViewData["Title"] = "Trang chủ";
+    Layout = "_Layout";
+    var currentUser = ViewBag.CurrentUser as Social_Website.Models.User;
+    var recommendedUsers = ViewBag.RecommendedUsers as IEnumerable<Social_Website.Models.User>;
+}
+
+<div class="row">
+    <!-- Cột trái: Thông tin cá nhân thu gọn -->
+    <div class="col-md-3 mb-4">
+        <div class="card sidebar-sticky">
+            <div class="card-body text-center py-4">
+                <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-lg shadow-sm mb-3" />
+                <h5 class="fw-bold mb-1">@currentUser?.FullName</h5>
+                <p class="text-muted small mb-3">@@@currentUser?.Username</p>
+                <hr class="my-3" />
+                <div class="d-flex justify-content-around text-center">
+                    <div>
+                        <span class="d-block fw-bold fs-5 text-primary">@currentUser?.Posts.Count</span>
+                        <span class="text-muted small">Bài viết</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cột giữa: Feed bài đăng -->
+    <div class="col-md-6 mb-4">
+        <!-- Card viết bài mới -->
+        <div class="card mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex mb-3">
+                    <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-sm me-3" />
+                    <div class="w-100">
+                        <form id="createPostForm">
+                            <textarea id="postContent" class="form-control post-input w-100" rows="3" placeholder="Hôm nay bạn thế nào, @(currentUser?.FullName)?..." required></textarea>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="d-flex text-muted gap-3 small">
+                                    <span class="cursor-pointer hover-primary"><i class="bi bi-image text-success me-1"></i>Ảnh</span>
+                                    <span class="cursor-pointer hover-primary"><i class="bi bi-emoji-smile text-warning me-1"></i>Cảm xúc</span>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm px-4">Đăng bài</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách bài đăng (Feed) -->
+        <div id="feedContainer">
+            @foreach (var post in Model)
+            {
+                <div class="card card-hover mb-4 animate-fade-in-up" id="postCard-@post.PostId">
+                    <div class="card-body p-4">
+                        <!-- User header -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <img src="@post.User?.AvatarUrl" alt="@post.User?.FullName" class="avatar avatar-sm me-3" />
+                                <div>
+                                    <h6 class="fw-bold mb-0">@post.User?.FullName</h6>
+                                    <span class="text-muted small">@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-bookmark me-2"></i>Lưu bài viết</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Post content -->
+                        <p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">@post.Content</p>
+
+                        <!-- Post Actions summary -->
+                        <div class="d-flex justify-content-between text-muted small border-top border-bottom py-2 my-2">
+                            <span id="likeCount-@post.PostId"><i class="bi-heart-fill text-danger me-1"></i> @post.Likes.Count lượt thích</span>
+                            <span id="commentCount-@post.PostId"><i class="bi-chat-dots me-1"></i> @post.Comments.Count bình luận</span>
+                        </div>
+
+                        <!-- Post buttons -->
+                        <div class="d-flex justify-content-around mb-3">
+                            @{
+                                bool isLiked = post.Likes.Any(l => l.UserId == currentUser?.UserId);
+                            }
+                            <button class="btn btn-link text-decoration-none fw-semibold py-1 w-50 btn-toggle-like @(isLiked ? "text-danger" : "text-muted")" data-post-id="@post.PostId">
+                                <i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart") me-1"></i>Thích
+                            </button>
+                            <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 w-50 hover-primary" onclick="$('#commentSection-@post.PostId').toggle();"><i class="bi bi-chat-dots me-1"></i>Bình luận</button>
+                        </div>
+
+                        <!-- Comments Section -->
+                        <div class="comment-section" id="commentSection-@post.PostId">
+                            <div class="comment-list d-flex flex-column gap-2 mb-3" id="commentList-@post.PostId">
+                                @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                                {
+                                    <div class="d-flex">
+                                        <img src="@comment.User?.AvatarUrl" alt="@comment.User?.FullName" class="avatar avatar-sm me-2 mt-1" />
+                                        <div class="comment-box w-100">
+                                            <div class="d-flex justify-content-between">
+                                                <span class="fw-bold">@comment.User?.FullName</span>
+                                                <span class="text-muted small">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                            <p class="mb-0 mt-1">@comment.Content</p>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Comment Input Form -->
+                            <form class="create-comment-form" data-post-id="@post.PostId">
+                                <div class="comment-input-wrapper d-flex align-items-center">
+                                    <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-sm me-2" />
+                                    <div class="input-group">
+                                        <input type="text" class="form-control comment-input" placeholder="Viết bình luận..." required autocomplete="off" />
+                                        <button type="submit" class="comment-send-btn"><i class="bi bi-send-fill"></i></button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Cột phải: Gợi ý kết bạn -->
+    <div class="col-md-3 mb-4">
+        <div class="card sidebar-sticky">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                <h6 class="fw-bold mb-0 text-primary">Gợi ý kết bạn</h6>
+            </div>
+            <div class="card-body px-4 pb-4 pt-2">
+                <div class="d-flex flex-column gap-3">
+                    @if (recommendedUsers != null && recommendedUsers.Any())
+                    {
+                        foreach (var user in recommendedUsers)
+                        {
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-sm me-2.5" />
+                                    <div>
+                                        <h6 class="fw-semibold mb-0 small text-truncate" style="max-width: 100px;">@user.FullName</h6>
+                                        <span class="text-muted small" style="font-size: 0.75rem;">@@@user.Username</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary btn-sm py-1 px-3 btn-add-friend" data-user-id="@user.UserId" style="font-size: 0.8rem;">
+                                    <i class="bi bi-person-plus-fill me-1"></i>Thêm
+                                </button>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">Không có gợi ý mới.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.25/signalr.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // 1. Kết nối tới SignalR SocialHub
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/socialHub")
+                .build();
+
+            // Nhận bài đăng mới
+            connection.on("ReceiveNewPost", function (post) {
+                const postHtml = `
+                    <div class="card card-hover mb-4 animate-fade-in-up" id="postCard-${post.postId}">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center">
+                                    <img src="${post.avatarUrl}" alt="${post.fullName}" class="avatar avatar-sm me-3" />
+                                    <div>
+                                        <h6 class="fw-bold mb-0">${post.fullName}</h6>
+                                        <span class="text-muted small">${post.createdAt}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">${post.content}</p>
+                            <div class="d-flex justify-content-between text-muted small border-top border-bottom py-2 my-2">
+                                <span id="likeCount-${post.postId}"><i class="bi-heart-fill text-danger me-1"></i> 0 lượt thích</span>
+                                <span id="commentCount-${post.postId}"><i class="bi-chat-dots me-1"></i> 0 bình luận</span>
+                            </div>
+                            <div class="d-flex justify-content-around mb-3">
+                                <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 w-50 btn-toggle-like" data-post-id="${post.postId}"><i class="bi bi-heart me-1"></i>Thích</button>
+                                <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 w-50 hover-primary" onclick="$('#commentSection-${post.postId}').toggle();"><i class="bi bi-chat-dots me-1"></i>Bình luận</button>
+                            </div>
+                            <div class="comment-section" id="commentSection-${post.postId}">
+                                <div class="comment-list d-flex flex-column gap-2 mb-3" id="commentList-${post.postId}"></div>
+                                <form class="create-comment-form" data-post-id="${post.postId}">
+                                    <div class="comment-input-wrapper d-flex align-items-center">
+                                        <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-sm me-2" />
+                                        <div class="input-group">
+                                            <input type="text" class="form-control comment-input" placeholder="Viết bình luận..." required autocomplete="off" />
+                                            <button type="submit" class="comment-send-btn"><i class="bi bi-send-fill"></i></button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $("#feedContainer").prepend(postHtml);
+            });
+
+            // Nhận bình luận mới
+            connection.on("ReceiveNewComment", function (comment) {
+                const commentHtml = `
+                    <div class="d-flex">
+                        <img src="${comment.avatarUrl}" alt="${comment.fullName}" class="avatar avatar-sm me-2 mt-1" />
+                        <div class="comment-box w-100">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">${comment.fullName}</span>
+                                <span class="text-muted small">${comment.createdAt}</span>
+                            </div>
+                            <p class="mb-0 mt-1">${comment.content}</p>
+                        </div>
+                    </div>
+                `;
+                $(`#commentList-${comment.postId}`).append(commentHtml);
+
+                // Cập nhật số lượng bình luận
+                const $count = $(`#commentCount-${comment.postId}`);
+                const match = $count.text().match(/\d+/);
+                if (match) {
+                    const currentCount = parseInt(match[0]);
+                    $count.html(`<i class="bi-chat-dots me-1"></i> ${currentCount + 1} bình luận`);
+                }
+            });
+
+            // Nhận cập nhật số lượt thích thời gian thực
+            connection.on("UpdateLikeCount", function (postId, likeCount) {
+                $(`#likeCount-${postId}`).html(`<i class="bi-heart-fill text-danger me-1"></i> ${likeCount} lượt thích`);
+            });
+
+            connection.start().catch(err => console.error(err.toString()));
+
+            // 2. Gửi bài đăng mới bằng AJAX
+            $("#createPostForm").submit(function (e) {
+                e.preventDefault();
+                const content = $("#postContent").val();
+                $.post("/Post/Create", { content: content }, function (res) {
+                    if (res.success) {
+                        $("#postContent").val("");
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // 3. Gửi bình luận mới bằng AJAX
+            $(document).on("submit", ".create-comment-form", function (e) {
+                e.preventDefault();
+                const postId = $(this).data("post-id");
+                const $input = $(this).find(".comment-input");
+                const content = $input.val();
+                $.post("/Post/CreateComment", { postId: postId, content: content }, function (res) {
+                    if (res.success) {
+                        $input.val("");
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // 4. Gửi yêu cầu kết bạn bằng AJAX
+            $(document).on("click", ".btn-add-friend", function () {
+                const userId = $(this).data("user-id");
+                const $btn = $(this);
+                $.post("/Friend/SendRequest", { receiverId: userId }, function (res) {
+                    if (res.success) {
+                        $btn.replaceWith(`<button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-clock-history me-1"></i>Đã gửi</button>`);
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // 5. Thích / Thả tim bài viết bằng AJAX
+            $(document).on("click", ".btn-toggle-like", function () {
+                const postId = $(this).data("post-id");
+                const $btn = $(this);
+                $.post("/Post/ToggleLike", { postId: postId }, function (res) {
+                    if (res.success) {
+                        if (res.isLiked) {
+                            $btn.removeClass("text-muted").addClass("text-danger");
+                            $btn.find("i").removeClass("bi-heart").addClass("bi-heart-fill");
+                        } else {
+                            $btn.removeClass("text-danger").addClass("text-muted");
+                            $btn.find("i").removeClass("bi-heart-fill").addClass("bi-heart");
+                        }
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+        });
+    </script>
+}

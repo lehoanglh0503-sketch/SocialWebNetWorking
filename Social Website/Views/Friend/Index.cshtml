@@ -1,0 +1,150 @@
+@{
+    ViewData["Title"] = "Bạn bè";
+    Layout = "_Layout";
+    var currentUser = ViewBag.CurrentUser as Social_Website.Models.User;
+    var friends = ViewBag.Friends as IEnumerable<Social_Website.Models.User>;
+    var pendingRequests = ViewBag.PendingRequests as IEnumerable<Social_Website.Models.Friendship>;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm p-4 animate-fade-in-up">
+            <h3 class="fw-bold mb-4"><i class="bi bi-people-fill text-primary me-2"></i>Quản lý bạn bè</h3>
+            
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-pills mb-4" id="friendsTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold" id="friends-list-tab" data-bs-toggle="pill" data-bs-target="#friends-list" type="button" role="tab">
+                        Bạn bè (@(friends?.Count() ?? 0))
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="pending-requests-tab" data-bs-toggle="pill" data-bs-target="#pending-requests" type="button" role="tab">
+                        Lời mời kết bạn (@(pendingRequests?.Count() ?? 0))
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tabs Content -->
+            <div class="tab-content" id="friendsTabContent">
+                <!-- Tab: Bạn bè -->
+                <div class="tab-pane fade show active" id="friends-list" role="tabpanel">
+                    @if (friends != null && friends.Any())
+                    {
+                        <div class="row row-cols-1 row-cols-sm-2 g-3">
+                            @foreach (var friend in friends)
+                            {
+                                <div class="col" id="friendCard-@friend.UserId">
+                                    <div class="friend-item d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-sm me-2.5" />
+                                            <div>
+                                                <h6 class="fw-bold mb-0">@friend.FullName</h6>
+                                                <span class="text-muted small">@@@friend.Username</span>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-outline-danger btn-sm px-3 btn-remove-friend" data-user-id="@friend.UserId">
+                                            Hủy kết bạn
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-person-x-fill text-muted fs-1 mb-3 d-block"></i>
+                            <p class="text-muted">Bạn chưa kết bạn với ai. Hãy gửi lời mời kết bạn ở Trang chủ nhé!</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Tab: Lời mời kết bạn -->
+                <div class="tab-pane fade" id="pending-requests" role="tabpanel">
+                    @if (pendingRequests != null && pendingRequests.Any())
+                    {
+                        <div class="row row-cols-1 row-cols-sm-2 g-3">
+                            @foreach (var req in pendingRequests)
+                            {
+                                <div class="col" id="reqCard-@req.Requestor?.UserId">
+                                    <div class="friend-item d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <img src="@req.Requestor?.AvatarUrl" alt="@req.Requestor?.FullName" class="avatar avatar-sm me-2.5" />
+                                            <div>
+                                                <h6 class="fw-bold mb-0">@req.Requestor?.FullName</h6>
+                                                <span class="text-muted small">@@@req.Requestor?.Username</span>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-primary btn-sm px-3 btn-accept" data-user-id="@req.Requestor?.UserId">
+                                                Đồng ý
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm px-3 btn-decline" data-user-id="@req.Requestor?.UserId">
+                                                Xóa
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-bell-slash text-muted fs-1 mb-3 d-block"></i>
+                            <p class="text-muted mb-0">Không có lời mời kết bạn nào đang chờ duyệt.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // 1. Chấp nhận kết bạn
+            $(document).on("click", ".btn-accept", function () {
+                const userId = $(this).data("user-id");
+                const $card = $(`#reqCard-${userId}`);
+                $.post("/Friend/AcceptRequest", { requestorId: userId }, function (res) {
+                    if (res.success) {
+                        $card.fadeOut(300, function() { $(this).remove(); location.reload(); });
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // 2. Từ chối yêu cầu kết bạn
+            $(document).on("click", ".btn-decline", function () {
+                const userId = $(this).data("user-id");
+                const $card = $(`#reqCard-${userId}`);
+                $.post("/Friend/RemoveFriend", { friendId: userId }, function (res) {
+                    if (res.success) {
+                        $card.fadeOut(300, function() { $(this).remove(); });
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // 3. Hủy kết bạn
+            $(document).on("click", ".btn-remove-friend", function () {
+                if (confirm("Bạn có chắc chắn muốn hủy kết bạn với người này không?")) {
+                    const userId = $(this).data("user-id");
+                    const $card = $(`#friendCard-${userId}`);
+                    $.post("/Friend/RemoveFriend", { friendId: userId }, function (res) {
+                        if (res.success) {
+                            $card.fadeOut(300, function() { $(this).remove(); });
+                        } else {
+                            alert(res.message);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

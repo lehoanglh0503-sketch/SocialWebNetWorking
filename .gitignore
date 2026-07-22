@@ -1,0 +1,26 @@
+## Build outputs
+**/bin/
+**/obj/
+
+## IDE configs
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## User-specific files
+*.user
+*.userprefs
+
+## Database files
+*.mdf
+*.ldf
+
+## Client-side package folders
+**/node_modules/
+**/bower_components/
+
+## Publishing outputs
+**/publish/
