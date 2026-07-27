@@ -19,6 +19,8 @@ namespace Social_Website.Models
         
         public string AvatarUrl { get; set; } = string.Empty;
         
+        public bool IsAdmin { get; set; } = false;
+        
         public ICollection<Post> Posts { get; set; } = new List<Post>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }

@@ -10,7 +10,55 @@ namespace Social_Website.Models
         {
             context.Database.Migrate();
 
-            if (!context.Users.Any())
+            // Đảm bảo có dữ liệu từ cấm mặc định
+            if (!context.BannedWords.Any())
+            {
+                var defaultWords = new List<BannedWord>
+                {
+                    new BannedWord { Word = "giết" },
+                    new BannedWord { Word = "chém" },
+                    new BannedWord { Word = "đâm" },
+                    new BannedWord { Word = "đánh" },
+                    new BannedWord { Word = "tự tử" },
+                    new BannedWord { Word = "tự sát" },
+                    new BannedWord { Word = "bạo lực" },
+                    new BannedWord { Word = "côn đồ" },
+                    new BannedWord { Word = "hành hung" },
+                    new BannedWord { Word = "đánh đập" },
+                    new BannedWord { Word = "tra tấn" },
+                    new BannedWord { Word = "khủng bố" },
+                    new BannedWord { Word = "kích động" }
+                };
+                context.BannedWords.AddRange(defaultWords);
+                context.SaveChanges();
+            }
+
+            // Đảm bảo có tài khoản Admin
+            var existingAdmin = context.Users.FirstOrDefault(u => u.Username == "admin");
+            if (existingAdmin != null)
+            {
+                if (!existingAdmin.IsAdmin)
+                {
+                    existingAdmin.IsAdmin = true;
+                    existingAdmin.PasswordHash = HashPassword("admin123");
+                    context.SaveChanges();
+                }
+            }
+            else
+            {
+                var userAdmin = new User
+                {
+                    Username = "admin",
+                    FullName = "Quản trị viên",
+                    PasswordHash = HashPassword("admin123"),
+                    AvatarUrl = "https://api.dicebear.com/7.x/adventurer/svg?seed=admin",
+                    IsAdmin = true
+                };
+                context.Users.Add(userAdmin);
+                context.SaveChanges();
+            }
+
+            if (context.Users.Count() <= 2)
             {
                 // Mật khẩu hash cho "123456"
                 string defaultPasswordHash = HashPassword("123456");

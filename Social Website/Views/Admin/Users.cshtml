@@ -1,0 +1,208 @@
+@model IEnumerable<Social_Website.Models.User>
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+    Layout = "_Layout";
+    long currentUserId = ViewBag.CurrentUserId;
+}
+
+<style>
+    .table th {
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border-color);
+        background-color: #f8fafc !important;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+    .avatar {
+        transition: transform 0.2s ease;
+    }
+    .avatar:hover {
+        transform: scale(1.1);
+    }
+</style>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm p-4 animate-fade-in-up">
+            <h2 class="fw-bold mb-4 text-primary"><i class="bi bi-speedometer2 me-2"></i>Hệ thống Quản trị Connectify</h2>
+            
+            <div class="d-flex gap-3">
+                <a href="@Url.Action("Index", "Admin")" class="btn btn-outline-primary"><i class="bi bi-flag-fill me-1"></i>Xem báo cáo</a>
+                <a href="@Url.Action("Users", "Admin")" class="btn btn-primary"><i class="bi bi-people-fill me-1"></i>Quản lý người dùng</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quản lý người dùng -->
+<div class="card border-0 shadow-sm p-4 animate-fade-in-up">
+    <h4 class="fw-bold mb-4 text-secondary"><i class="bi bi-people-fill text-primary me-2"></i>Danh sách thành viên</h4>
+    
+    @if (Model != null && Model.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 30%">Thành viên</th>
+                        <th style="width: 25%">Tài khoản</th>
+                        <th style="width: 20%">Vai trò</th>
+                        <th style="width: 25%" class="text-end">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr id="userRow-@user.UserId">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-sm me-3" />
+                                    <span class="fw-bold text-dark">@user.FullName</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-muted">@@@user.Username</span>
+                            </td>
+                            <td>
+                                @if (user.IsAdmin)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small rounded" style="font-weight: 500;">Admin</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 small rounded" style="font-weight: 500;">Thành viên</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                     @if (user.UserId != currentUserId)
+                                     {
+                                         <button class="btn btn-sm btn-outline-primary px-3 rounded-pill btn-change-password-trigger" data-user-id="@user.UserId" data-user-fullname="@user.FullName" data-user-username="@user.Username">
+                                             <i class="bi bi-key-fill me-1"></i>Đổi mật khẩu
+                                         </button>
+                                         <button class="btn btn-sm btn-outline-danger px-3 rounded-pill btn-delete-user" data-user-id="@user.UserId">
+                                             <i class="bi bi-trash-fill me-1"></i>Xóa
+                                         </button>
+                                     }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted border px-3 py-1.5 rounded-pill small italic">Tài khoản của bạn</span>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mb-0">Không tìm thấy người dùng nào.</p>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Mở modal đổi mật khẩu
+            $(document).on("click", ".btn-change-password-trigger", function (e) {
+                e.preventDefault();
+                const userId = $(this).data("user-id");
+                const fullname = $(this).data("user-fullname");
+                const username = $(this).data("user-username");
+                
+                $("#changePasswordUserId").val(userId);
+                $("#changePasswordTargetName").html(`${fullname} (<span class="text-primary">@@${username}</span>)`);
+                $("#changePasswordNewInput").val("");
+                $("#changePasswordConfirmInput").val("");
+                $("#changePasswordModal").modal("show");
+            });
+
+            // Gửi yêu cầu đổi mật khẩu qua AJAX
+            $("#changePasswordForm").submit(function (e) {
+                e.preventDefault();
+                const userId = $("#changePasswordUserId").val();
+                const newPassword = $("#changePasswordNewInput").val();
+                const confirmPassword = $("#changePasswordConfirmInput").val();
+                
+                if (newPassword !== confirmPassword) {
+                    alert("Xác nhận mật khẩu mới không trùng khớp!");
+                    return;
+                }
+                
+                $.post("/Admin/ChangeUserPassword", { id: userId, newPassword: newPassword }, function (res) {
+                    if (res.success) {
+                        $("#changePasswordModal").modal("hide");
+                        alert(res.message);
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // Xóa người dùng
+            $(document).on("click", ".btn-delete-user", function () {
+                if (confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này sẽ xóa vĩnh viễn người dùng cùng toàn bộ bài viết, bình luận, lượt thích và bạn bè của họ. Không thể khôi phục!")) {
+                    const userId = $(this).data("user-id");
+                    const $row = $(`#userRow-${userId}`);
+                    
+                    $.post("/Admin/DeleteUser", { id: userId }, function (res) {
+                        if (res.success) {
+                            alert(res.message);
+                            $row.fadeOut(300, function() { $(this).remove(); });
+                        } else {
+                            alert(res.message);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}
+
+<!-- Modal Đổi mật khẩu cho người dùng -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 20px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary" id="changePasswordModalLabel"><i class="bi bi-key-fill me-2"></i>Đổi mật khẩu người dùng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="changePasswordForm">
+                <div class="modal-body py-4">
+                    <input type="hidden" id="changePasswordUserId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold">Người dùng</label>
+                        <div class="fw-bold fs-6 text-dark" id="changePasswordTargetName"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="changePasswordNewInput" class="form-label text-muted small fw-semibold">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
+                        <input type="password" id="changePasswordNewInput" class="form-control form-control-modern px-3 py-2.5" placeholder="Nhập mật khẩu mới..." required minlength="6" style="border-radius: 12px;" />
+                    </div>
+                    
+                    <div class="mb-0">
+                        <label for="changePasswordConfirmInput" class="form-label text-muted small fw-semibold">Xác nhận mật khẩu mới</label>
+                        <input type="password" id="changePasswordConfirmInput" class="form-control form-control-modern px-3 py-2.5" placeholder="Nhập lại mật khẩu mới..." required minlength="6" style="border-radius: 12px;" />
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

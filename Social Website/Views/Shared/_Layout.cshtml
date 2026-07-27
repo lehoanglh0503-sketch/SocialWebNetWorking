@@ -16,9 +16,10 @@
         var fullName = Context.Session.GetString("FullName");
         var avatarUrl = Context.Session.GetString("AvatarUrl");
         var username = Context.Session.GetString("Username");
+        var isAdmin = Context.Session.GetString("IsAdmin");
     }
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow sticky-top mb-4">
+    <header class="sticky-top">
+        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-4">
             <div class="container">
                 <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
                     <i class="bi bi-share-fill me-2"></i>Connectify
@@ -31,16 +32,30 @@
                     <ul class="navbar-nav flex-grow-1">
                         @if (userId != null)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">
-                                    <i class="bi bi-house-door me-1"></i>Trang chủ
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Friend" asp-action="Index">
-                                    <i class="bi bi-people me-1"></i>Bạn bè
-                                </a>
-                            </li>
+                            @if (isAdmin != "True")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">
+                                        <i class="bi bi-house-door me-1"></i>Trang chủ
+                                    </a>
+                                </li>
+                            }
+                            @if (isAdmin != "True")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Friend" asp-action="Index">
+                                        <i class="bi bi-people me-1"></i>Bạn bè
+                                    </a>
+                                </li>
+                            }
+                            @if (isAdmin == "True")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-danger fw-semibold" asp-area="" asp-controller="Admin" asp-action="Index">
+                                        <i class="bi bi-shield-lock-fill me-1"></i>Quản trị
+                                    </a>
+                                </li>
+                            }
                         }
                     </ul>
                     <div class="d-flex align-items-center">
@@ -53,6 +68,12 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownUser">
                                     <li><span class="dropdown-item-text text-muted">@@@username</span></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-center text-dark" asp-controller="Profile" asp-action="Index">
+                                            <i class="bi bi-person-fill me-2 text-primary"></i>Trang cá nhân
+                                        </a>
+                                    </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <a class="dropdown-item text-danger d-flex align-items-center" asp-controller="Auth" asp-action="Logout">

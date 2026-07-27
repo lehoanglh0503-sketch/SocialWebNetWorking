@@ -1,0 +1,555 @@
+@model Social_Website.Models.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Bảng quản trị";
+    Layout = "_Layout";
+    long currentUserId = ViewBag.CurrentUserId;
+}
+
+<style>
+    .stat-card {
+        cursor: pointer;
+        transition: all 0.25s ease;
+        border: 2px solid transparent !important;
+    }
+    .stat-card:hover {
+        transform: translateY(-4px);
+    }
+    .stat-card.active {
+        transform: scale(1.02);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+        border: 2px solid rgba(255,255,255,0.6) !important;
+    }
+    .table th {
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border-color);
+        background-color: #f8fafc !important;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+    .avatar {
+        transition: transform 0.2s ease;
+    }
+    .avatar:hover {
+        transform: scale(1.1);
+    }
+    .post-content-preview {
+        line-height: 1.5;
+    }
+    .btn-view-post-content {
+        transition: all 0.2s ease;
+    }
+    .btn-view-post-content:hover {
+        color: var(--primary-hover) !important;
+        text-decoration: underline !important;
+    }
+</style>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm p-4 animate-fade-in-up">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <h2 class="fw-bold mb-0 text-primary"><i class="bi bi-speedometer2 me-2"></i>Hệ thống Quản trị Connectify</h2>
+                <a class="btn btn-outline-primary rounded-pill px-4" asp-controller="Admin" asp-action="BannedWords">
+                    <i class="bi bi-shield-slash-fill me-2"></i>Quản lý từ cấm
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thống kê làm Tab chuyển đổi -->
+<div class="row g-3 mb-4 animate-fade-in-up" style="animation-delay: 0.1s;">
+    <div class="col-md-4">
+        <div id="tab-users" class="card stat-card border-0 shadow-sm p-4 text-white active" style="background: linear-gradient(135deg, #4f46e5, #6366f1) !important;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 text-uppercase small fw-bold">Tổng thành viên</h6>
+                    <h2 class="fw-bold mb-0">@Model.TotalUsers</h2>
+                </div>
+                <i class="bi bi-people fs-1 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div id="tab-posts" class="card stat-card border-0 shadow-sm p-4 text-white" style="background: linear-gradient(135deg, #10b981, #34d399) !important;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 text-uppercase small fw-bold">Tổng bài viết</h6>
+                    <h2 class="fw-bold mb-0">@Model.TotalPosts</h2>
+                </div>
+                <i class="bi bi-chat-left-text fs-1 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div id="tab-reports" class="card stat-card border-0 shadow-sm p-4 text-white" style="background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 text-uppercase small fw-bold">Số báo cáo vi phạm</h6>
+                    <h2 class="fw-bold mb-0">@Model.TotalReports</h2>
+                </div>
+                <i class="bi bi-flag fs-1 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Nội dung quản trị -->
+<div class="card border-0 shadow-sm p-4 animate-fade-in-up" style="animation-delay: 0.2s;">
+    
+    <!-- Tab 1: Danh sách thành viên -->
+    <div id="section-users" class="admin-section">
+        <h4 class="fw-bold mb-4 text-secondary"><i class="bi bi-people-fill text-primary me-2"></i>Danh sách thành viên</h4>
+        @if (Model.Users != null && Model.Users.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 30%">Thành viên</th>
+                            <th style="width: 25%">Tài khoản</th>
+                            <th style="width: 20%">Vai trò</th>
+                            <th style="width: 25%" class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model.Users)
+                        {
+                            <tr id="userRow-@user.UserId">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-sm me-2" />
+                                        <span class="fw-bold text-dark">@user.FullName</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-muted">@@@user.Username</span>
+                                </td>
+                                <td>
+                                    @if (user.IsAdmin)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small rounded" style="font-weight: 500;">Admin</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 small rounded" style="font-weight: 500;">Thành viên</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        @if (user.UserId != currentUserId)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary px-3 rounded-pill btn-change-password-trigger" data-user-id="@user.UserId" data-user-fullname="@user.FullName" data-user-username="@user.Username">
+                                                <i class="bi bi-key-fill me-1"></i>Đổi mật khẩu
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger px-3 rounded-pill btn-delete-user" data-user-id="@user.UserId">
+                                                <i class="bi bi-trash-fill me-1"></i>Xóa
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-muted border px-3 py-1.5 rounded-pill small italic">Tài khoản của bạn</span>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mb-0">Không tìm thấy người dùng nào.</p>
+        }
+    </div>
+
+    <!-- Tab 2: Danh sách bài viết -->
+    <div id="section-posts" class="admin-section d-none">
+        <h4 class="fw-bold mb-4 text-secondary"><i class="bi bi-chat-left-text-fill text-success me-2"></i>Danh sách bài đăng</h4>
+        @if (Model.Posts != null && Model.Posts.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 20%">Tác giả</th>
+                            <th style="width: 45%">Nội dung bài viết</th>
+                            <th style="width: 15%">Ngày đăng</th>
+                            <th style="width: 10%">Tương tác</th>
+                            <th style="width: 10%" class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var post in Model.Posts)
+                        {
+                            <tr id="postRow-@post.PostId">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="@post.User?.AvatarUrl" alt="@post.User?.FullName" class="avatar avatar-sm me-2" />
+                                        <div>
+                                            <div class="fw-semibold small">@post.User?.FullName</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">@@@post.User?.Username</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="post-content-preview text-dark small text-wrap" style="max-width: 380px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; margin-bottom: 0;">
+                                        @post.Content
+                                    </div>
+                                    @if (post.Content != null && post.Content.Length > 100)
+                                    {
+                                        <a href="#" class="btn-view-post-content text-decoration-none small fw-semibold text-primary d-inline-block mt-1" data-content="@post.Content" style="font-size: 0.75rem;">
+                                            <i class="bi bi-eye me-1"></i>Xem thêm
+                                        </a>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="small fw-semibold text-dark">@post.CreatedAt.ToString("dd/MM/yyyy")</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        <i class="bi bi-clock me-1"></i>@post.CreatedAt.ToString("HH:mm")
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column flex-sm-row gap-1">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-pill" title="Lượt thích">
+                                            <i class="bi bi-heart-fill me-1"></i>@(post.Likes?.Count ?? 0)
+                                        </span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill" title="Bình luận">
+                                            <i class="bi bi-chat-dots-fill me-1"></i>@(post.Comments?.Count ?? 0)
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-danger px-3 rounded-pill btn-delete-post-only" data-post-id="@post.PostId">
+                                        <i class="bi bi-trash3-fill me-1"></i>Xóa
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mb-0">Không tìm thấy bài viết nào.</p>
+        }
+    </div>
+
+    <!-- Tab 3: Báo cáo vi phạm -->
+    <div id="section-reports" class="admin-section d-none">
+        <h4 class="fw-bold mb-4 text-secondary"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Báo cáo bài viết cần xử lý</h4>
+        @if (Model.Reports != null && Model.Reports.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%">Người báo cáo</th>
+                            <th style="width: 25%">Lý do báo cáo</th>
+                            <th style="width: 40%">Nội dung bài viết bị báo cáo</th>
+                            <th style="width: 20%" class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var report in Model.Reports)
+                        {
+                            <tr id="reportRow-@report.PostReportId">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="@report.Reporter?.AvatarUrl" alt="@report.Reporter?.FullName" class="avatar avatar-sm me-2" />
+                                        <div>
+                                            <div class="fw-semibold small">@report.Reporter?.FullName</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">@@@report.Reporter?.Username</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 small rounded" style="font-weight: 500;">
+                                        @report.Reason
+                                    </span>
+                                    <div class="text-muted mt-1" style="font-size: 0.75rem;">
+                                        <i class="bi bi-clock me-1"></i>@report.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (report.Post != null)
+                                    {
+                                        <div class="post-content-preview text-dark small text-wrap mb-1" style="max-width: 320px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; margin-bottom: 0;">
+                                            @report.Post.Content
+                                        </div>
+                                        @if (report.Post.Content != null && report.Post.Content.Length > 100)
+                                        {
+                                            <a href="#" class="btn-view-post-content text-decoration-none small fw-semibold text-primary d-inline-block mb-1" data-content="@report.Post.Content" style="font-size: 0.75rem;">
+                                                <i class="bi bi-eye me-1"></i>Xem thêm
+                                            </a>
+                                        }
+                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                            Tác giả: <strong>@report.Post.User?.FullName</strong> (@@@report.Post.User?.Username)
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded small">
+                                            <i class="bi bi-trash me-1"></i>Bài viết này đã bị xóa
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        @if (report.Post != null)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger px-3 rounded-pill btn-delete-post" data-post-id="@report.PostId" data-report-id="@report.PostReportId">
+                                                <i class="bi bi-trash3-fill me-1"></i>Xóa bài
+                                            </button>
+                                        }
+                                        <button class="btn btn-sm btn-outline-secondary px-3 rounded-pill btn-dismiss-report" data-report-id="@report.PostReportId">
+                                            <i class="bi bi-x-circle me-1"></i>Bỏ qua
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-check-circle-fill text-success fs-1 mb-3 d-block"></i>
+                <p class="text-muted mb-0">Tuyệt vời! Không có báo cáo bài viết nào chưa xử lý.</p>
+            </div>
+        }
+    </div>
+
+</div>
+
+<!-- Modal xem chi tiết nội dung bài viết -->
+<div class="modal fade" id="postContentModal" tabindex="-1" aria-labelledby="postContentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-bottom-0 py-3">
+                <h5 class="modal-title fw-bold text-dark" id="postContentModalLabel"><i class="bi bi-chat-left-text text-primary me-2"></i>Nội dung bài viết</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 fs-6 text-dark" id="postContentModalBody" style="white-space: pre-wrap; line-height: 1.6;">
+                <!-- Nội dung sẽ được cập nhật bằng JS -->
+            </div>
+            <div class="modal-footer border-top-0 py-3 bg-light">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // View full post content in modal
+            $(document).on("click", ".btn-view-post-content", function (e) {
+                e.preventDefault();
+                const content = $(this).attr("data-content");
+                $("#postContentModalBody").text(content);
+                var myModal = new bootstrap.Modal(document.getElementById('postContentModal'));
+                myModal.show();
+            });
+
+            // Chuyển đổi Tab khi click vào các card thống kê
+            $("#tab-users").click(function () {
+                $(".stat-card").removeClass("active");
+                $(this).addClass("active");
+                $(".admin-section").addClass("d-none");
+                $("#section-users").removeClass("d-none");
+            });
+
+            $("#tab-posts").click(function () {
+                $(".stat-card").removeClass("active");
+                $(this).addClass("active");
+                $(".admin-section").addClass("d-none");
+                $("#section-posts").removeClass("d-none");
+            });
+
+            $("#tab-reports").click(function () {
+                $(".stat-card").removeClass("active");
+                $(this).addClass("active");
+                $(".admin-section").addClass("d-none");
+                $("#section-reports").removeClass("d-none");
+            });
+
+            // Xóa bài đăng vi phạm (trong Tab Báo cáo)
+            $(document).on("click", ".btn-delete-post", function (e) {
+                e.preventDefault();
+                const postId = $(this).attr("data-post-id") || $(this).data("post-id");
+                
+                if (!postId) {
+                    alert("Không tìm thấy ID bài viết!");
+                    return;
+                }
+                
+                if (confirm("Bạn có chắc chắn muốn xóa bài đăng vi phạm này không? Hành động này sẽ xóa vĩnh viễn bài đăng.")) {
+                    $.ajax({
+                        url: "/Admin/DeletePost",
+                        type: "POST",
+                        data: { id: postId },
+                        success: function (res) {
+                            if (res.success) {
+                                alert(res.message);
+                                location.reload();
+                            } else {
+                                alert(res.message);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            alert("Lỗi hệ thống khi xóa bài đăng: " + error + " (Mã lỗi: " + xhr.status + ")");
+                        }
+                    });
+                }
+            });
+
+            // Xóa bài đăng tự do (trong Tab Bài đăng)
+            $(document).on("click", ".btn-delete-post-only", function (e) {
+                e.preventDefault();
+                const postId = $(this).attr("data-post-id") || $(this).data("post-id");
+                
+                if (!postId) {
+                    alert("Không tìm thấy ID bài viết!");
+                    return;
+                }
+                
+                if (confirm("Bạn có chắc chắn muốn xóa bài đăng này không? Hành động này không thể hoàn tác.")) {
+                    $.ajax({
+                        url: "/Admin/DeletePost",
+                        type: "POST",
+                        data: { id: postId },
+                        success: function (res) {
+                            if (res.success) {
+                                alert(res.message);
+                                location.reload();
+                            } else {
+                                alert(res.message);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            alert("Lỗi hệ thống khi xóa bài đăng: " + error + " (Mã lỗi: " + xhr.status + ")");
+                        }
+                    });
+                }
+            });
+
+            // Bỏ qua báo cáo
+            $(document).on("click", ".btn-dismiss-report", function (e) {
+                e.preventDefault();
+                const reportId = $(this).attr("data-report-id") || $(this).data("report-id");
+                
+                $.post("/Admin/DismissReport", { id: reportId }, function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // Mở modal đổi mật khẩu
+            $(document).on("click", ".btn-change-password-trigger", function (e) {
+                e.preventDefault();
+                const userId = $(this).attr("data-user-id") || $(this).data("user-id");
+                const fullname = $(this).data("user-fullname");
+                const username = $(this).data("user-username");
+                
+                $("#changePasswordUserId").val(userId);
+                $("#changePasswordTargetName").html(`${fullname} (<span class="text-primary">@@${username}</span>)`);
+                $("#changePasswordNewInput").val("");
+                $("#changePasswordConfirmInput").val("");
+                $("#changePasswordModal").modal("show");
+            });
+
+            // Gửi yêu cầu đổi mật khẩu qua AJAX
+            $("#changePasswordForm").submit(function (e) {
+                e.preventDefault();
+                const userId = $("#changePasswordUserId").val();
+                const newPassword = $("#changePasswordNewInput").val();
+                const confirmPassword = $("#changePasswordConfirmInput").val();
+                
+                if (newPassword !== confirmPassword) {
+                    alert("Xác nhận mật khẩu mới không trùng khớp!");
+                    return;
+                }
+                
+                $.post("/Admin/ChangeUserPassword", { id: userId, newPassword: newPassword }, function (res) {
+                    if (res.success) {
+                        $("#changePasswordModal").modal("hide");
+                        alert(res.message);
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // Xóa người dùng
+            $(document).on("click", ".btn-delete-user", function (e) {
+                e.preventDefault();
+                if (confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này sẽ xóa vĩnh viễn người dùng cùng toàn bộ bài viết, bình luận, lượt thích và bạn bè của họ. Không thể khôi phục!")) {
+                    const userId = $(this).attr("data-user-id") || $(this).data("user-id");
+                    
+                    $.post("/Admin/DeleteUser", { id: userId }, function (res) {
+                        if (res.success) {
+                            alert(res.message);
+                            location.reload();
+                        } else {
+                            alert(res.message);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}
+
+<!-- Modal Đổi mật khẩu cho người dùng -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 20px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary" id="changePasswordModalLabel"><i class="bi bi-key-fill me-2"></i>Đổi mật khẩu người dùng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="changePasswordForm">
+                <div class="modal-body py-4">
+                    <input type="hidden" id="changePasswordUserId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold">Người dùng</label>
+                        <div class="fw-bold fs-6 text-dark" id="changePasswordTargetName"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="changePasswordNewInput" class="form-label text-muted small fw-semibold">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
+                        <input type="password" id="changePasswordNewInput" class="form-control form-control-modern px-3 py-2.5" placeholder="Nhập mật khẩu mới..." required minlength="6" style="border-radius: 12px;" />
+                    </div>
+                    
+                    <div class="mb-0">
+                        <label for="changePasswordConfirmInput" class="form-label text-muted small fw-semibold">Xác nhận mật khẩu mới</label>
+                        <input type="password" id="changePasswordConfirmInput" class="form-control form-control-modern px-3 py-2.5" placeholder="Nhập lại mật khẩu mới..." required minlength="6" style="border-radius: 12px;" />
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

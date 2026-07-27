@@ -1,0 +1,129 @@
+@model IEnumerable<Social_Website.Models.BannedWord>
+@{
+    ViewData["Title"] = "Quản lý từ cấm";
+    Layout = "_Layout";
+}
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm p-4 animate-fade-in-up">
+            <div class="d-flex align-items-center flex-wrap gap-3">
+                <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0" style="width: 40px; height: 40px;">
+                    <i class="bi bi-arrow-left fs-5"></i>
+                </a>
+                <div>
+                    <h2 class="fw-bold mb-0 text-primary"><i class="bi bi-shield-slash-fill me-2"></i>Quản lý từ vi phạm</h2>
+                    <p class="text-muted mb-0 small">Thiết lập danh sách từ khóa bạo lực để hệ thống tự động kiểm duyệt bài viết.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Form thêm từ cấm -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4 animate-fade-in-up" style="animation-delay: 0.1s;">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-plus-circle-fill me-2 text-primary"></i>Thêm từ cấm</h5>
+            <form id="addWordForm">
+                <div class="mb-3">
+                    <label for="newWordInput" class="form-label fw-semibold small text-muted">Từ hoặc cụm từ vi phạm</label>
+                    <input type="text" id="newWordInput" class="form-control form-control-modern px-3 py-2" placeholder="Ví dụ: quấy rối, khủng bố..." required style="border-radius: 12px;" />
+                </div>
+                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold"><i class="bi bi-plus-lg me-1"></i>Thêm vào danh sách</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Danh sách các từ cấm hiện có -->
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm p-4 animate-fade-in-up" style="animation-delay: 0.2s;">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-list-task me-2 text-primary"></i>Danh sách từ khóa bị chặn</h5>
+            <p class="text-muted small">Nhấp vào nút <span class="badge bg-light text-muted border">x</span> để gỡ bỏ từ khóa khỏi bộ lọc rà soát bài đăng.</p>
+            
+            <div class="d-flex flex-wrap gap-2 pt-2" id="wordsContainer" style="min-height: 100px;">
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var word in Model)
+                    {
+                        <span class="badge bg-light text-dark border px-3 py-2.5 rounded-pill d-flex align-items-center gap-2 animate-fade-in-up" id="wordBadge-@word.BannedWordId" style="font-size: 0.88rem; font-weight: 500;">
+                            <span>@word.Word</span>
+                            <button type="button" class="btn-close btn-close-sm btn-delete-word" data-word-id="@word.BannedWordId" style="font-size: 0.65rem;"></button>
+                        </span>
+                    }
+                }
+                else
+                {
+                    <div id="noWordsPlaceholder" class="text-center text-muted py-4 w-100">
+                        <i class="bi bi-shield-check fs-1 text-success d-block mb-2"></i>
+                        Danh sách từ khóa cấm trống. Hệ thống hiện chưa chặn từ khóa nào.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Thêm từ cấm qua AJAX
+            $("#addWordForm").submit(function (e) {
+                e.preventDefault();
+                const word = $("#newWordInput").val().trim();
+                if (!word) return;
+
+                $.post("/Admin/AddBannedWord", { word: word }, function (res) {
+                    if (res.success) {
+                        $("#newWordInput").val("");
+                        
+                        // Ẩn placeholder trống nếu có
+                        $("#noWordsPlaceholder").remove();
+
+                        // Thêm badge mới vào container
+                        const badgeHtml = `
+                            <span class="badge bg-light text-dark border px-3 py-2.5 rounded-pill d-flex align-items-center gap-2 animate-fade-in-up" id="wordBadge-${res.bannedWordId}" style="font-size: 0.88rem; font-weight: 500; display: none;">
+                                <span>${res.word}</span>
+                                <button type="button" class="btn-close btn-close-sm btn-delete-word" data-word-id="${res.bannedWordId}" style="font-size: 0.65rem;"></button>
+                            </span>
+                        `;
+                        
+                        const $badgeHtml = $(badgeHtml);
+                        $("#wordsContainer").append($badgeHtml);
+                        $badgeHtml.fadeIn(200);
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // Xóa từ cấm qua AJAX
+            $(document).on("click", ".btn-delete-word", function () {
+                const id = $(this).data("word-id");
+                const $badge = $(`#wordBadge-${id}`);
+
+                if (confirm("Bạn có chắc muốn xóa từ khóa này khỏi danh sách bộ lọc?")) {
+                    $.post("/Admin/DeleteBannedWord", { id: id }, function (res) {
+                        if (res.success) {
+                            $badge.fadeOut(200, function () {
+                                $(this).remove();
+                                
+                                // Nếu không còn từ nào, hiển thị lại placeholder
+                                if ($("#wordsContainer").children().length === 0) {
+                                    $("#wordsContainer").html(`
+                                        <div id="noWordsPlaceholder" class="text-center text-muted py-4 w-100">
+                                            <i class="bi bi-shield-check fs-1 text-success d-block mb-2"></i>
+                                            Danh sách từ khóa cấm trống. Hệ thống hiện chưa chặn từ khóa nào.
+                                        </div>
+                                    `);
+                                }
+                            });
+                        } else {
+                            alert(res.message);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

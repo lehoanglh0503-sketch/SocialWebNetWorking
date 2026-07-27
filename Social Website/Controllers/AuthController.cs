@@ -3,6 +3,7 @@ using Social_Website.Models;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using Social_Website.Helpers;
 
 namespace Social_Website.Controllers
 {
@@ -18,7 +19,7 @@ namespace Social_Website.Controllers
         [HttpGet]
         public IActionResult Login()
         {
-            if (HttpContext.Session.GetString("UserId") != null)
+            if (this.GetCurrentUserId() != null)
             {
                 return RedirectToAction("Index", "Home");
             }
@@ -48,6 +49,7 @@ namespace Social_Website.Controllers
             HttpContext.Session.SetString("Username", user.Username);
             HttpContext.Session.SetString("FullName", user.FullName);
             HttpContext.Session.SetString("AvatarUrl", user.AvatarUrl);
+            HttpContext.Session.SetString("IsAdmin", user.IsAdmin.ToString());
 
             return RedirectToAction("Index", "Home");
         }
@@ -55,7 +57,7 @@ namespace Social_Website.Controllers
         [HttpGet]
         public IActionResult Register()
         {
-            if (HttpContext.Session.GetString("UserId") != null)
+            if (this.GetCurrentUserId() != null)
             {
                 return RedirectToAction("Index", "Home");
             }
@@ -113,6 +115,7 @@ namespace Social_Website.Controllers
             HttpContext.Session.SetString("Username", user.Username);
             HttpContext.Session.SetString("FullName", user.FullName);
             HttpContext.Session.SetString("AvatarUrl", user.AvatarUrl);
+            HttpContext.Session.SetString("IsAdmin", user.IsAdmin.ToString());
 
             return RedirectToAction("Index", "Home");
         }

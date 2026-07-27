@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Social_Website.Models
 {
     public class PostLike
@@ -9,5 +11,9 @@ namespace Social_Website.Models
         
         public long UserId { get; set; }
         public User? User { get; set; }
+
+        [Required]
+        [StringLength(20)]
+        public string ReactionType { get; set; } = "Like";
     }
 }

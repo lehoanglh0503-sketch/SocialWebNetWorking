@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Social_Website.Models;
+using Social_Website.Helpers;
 
 namespace Social_Website.Controllers
 {
@@ -13,21 +14,17 @@ namespace Social_Website.Controllers
             _context = context;
         }
 
-        private User? GetCurrentUser()
-        {
-            var userIdStr = HttpContext.Session.GetString("UserId");
-            if (userIdStr == null) return null;
-
-            long userId = long.Parse(userIdStr);
-            return _context.Users.Find(userId);
-        }
-
         public async Task<IActionResult> Index()
         {
-            var currentUser = GetCurrentUser();
+            var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null)
             {
                 return RedirectToAction("Login", "Auth");
+            }
+
+            if (currentUser.IsAdmin)
+            {
+                return RedirectToAction("Index", "Admin");
             }
 
             long currentUserId = currentUser.UserId;
@@ -61,8 +58,13 @@ namespace Social_Website.Controllers
         [HttpPost]
         public async Task<IActionResult> SendRequest(long receiverId)
         {
-            var currentUser = GetCurrentUser();
+            var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null) return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            if (currentUser.IsAdmin) return Json(new { success = false, message = "Tài khoản quản trị không thể kết bạn" });
+
+            var receiver = await _context.Users.FindAsync(receiverId);
+            if (receiver == null) return Json(new { success = false, message = "Người dùng không tồn tại" });
+            if (receiver.IsAdmin) return Json(new { success = false, message = "Không thể kết bạn với tài khoản quản trị" });
 
             long requestorId = currentUser.UserId;
             if (requestorId == receiverId) return Json(new { success = false, message = "Không thể kết bạn với chính mình" });
@@ -93,8 +95,9 @@ namespace Social_Website.Controllers
         [HttpPost]
         public async Task<IActionResult> AcceptRequest(long requestorId)
         {
-            var currentUser = GetCurrentUser();
+            var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null) return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            if (currentUser.IsAdmin) return Json(new { success = false, message = "Tài khoản quản trị không thể thực hiện hành động này" });
 
             long receiverId = currentUser.UserId;
 
@@ -115,8 +118,9 @@ namespace Social_Website.Controllers
         [HttpPost]
         public async Task<IActionResult> RemoveFriend(long friendId)
         {
-            var currentUser = GetCurrentUser();
+            var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null) return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            if (currentUser.IsAdmin) return Json(new { success = false, message = "Tài khoản quản trị không thể thực hiện hành động này" });
 
             long currentUserId = currentUser.UserId;
 

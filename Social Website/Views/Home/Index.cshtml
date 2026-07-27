@@ -3,8 +3,66 @@
     ViewData["Title"] = "Trang chủ";
     Layout = "_Layout";
     var currentUser = ViewBag.CurrentUser as Social_Website.Models.User;
-    var recommendedUsers = ViewBag.RecommendedUsers as IEnumerable<Social_Website.Models.User>;
 }
+
+<style>
+    .reaction-button-container {
+        position: relative;
+    }
+    
+    /* Flyout container */
+    .reactions-flyout {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-10px);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        z-index: 1050;
+        display: none !important;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
+        border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        border-radius: 30px !important;
+    }
+    
+    /* Show flyout on hover container */
+    .reaction-button-container:hover .reactions-flyout {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(-5px);
+        display: flex !important;
+    }
+    
+    /* Individual Emoji */
+    .reaction-emoji-item {
+        font-size: 1.85rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: inline-block;
+    }
+    
+    .reaction-emoji-item:hover {
+        transform: scale(1.35) translateY(-5px);
+    }
+    
+    /* Reactions summary styling */
+    .reactions-emojis-container span {
+        margin-right: -4px;
+        font-size: 0.95rem;
+        display: inline-block;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .hover-underline:hover {
+        text-decoration: underline !important;
+    }
+</style>
 
 <div class="row">
     <!-- Cột trái: Thông tin cá nhân thu gọn -->
@@ -26,7 +84,7 @@
     </div>
 
     <!-- Cột giữa: Feed bài đăng -->
-    <div class="col-md-6 mb-4">
+    <div class="@(currentUser != null && currentUser.IsAdmin ? "col-md-9" : "col-md-6") mb-4">
         <!-- Card viết bài mới -->
         <div class="card mb-4">
             <div class="card-body p-4">
@@ -35,6 +93,13 @@
                     <div class="w-100">
                         <form id="createPostForm">
                             <textarea id="postContent" class="form-control post-input w-100" rows="3" placeholder="Hôm nay bạn thế nào, @(currentUser?.FullName)?..." required></textarea>
+                            
+                            <!-- Cảnh báo từ ngữ bạo lực -->
+                            <div id="postValidationAlert" class="alert alert-danger d-none mt-2 mb-0 animate-fade-in-up" role="alert" style="border-radius: 12px; font-size: 0.85rem;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <span id="postValidationMessage"></span>
+                            </div>
+
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <div class="d-flex text-muted gap-3 small">
                                     <span class="cursor-pointer hover-primary"><i class="bi bi-image text-success me-1"></i>Ảnh</span>
@@ -69,6 +134,15 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                                     <li><a class="dropdown-item" href="#"><i class="bi bi-bookmark me-2"></i>Lưu bài viết</a></li>
+                                    @if (post.UserId != currentUser?.UserId)
+                                    {
+                                        <li><a class="dropdown-item text-warning btn-report-post-trigger" href="#" data-post-id="@post.PostId"><i class="bi bi-flag me-2"></i>Báo cáo bài viết</a></li>
+                                    }
+                                    @if (post.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger btn-delete-post-trigger" href="#" data-post-id="@post.PostId"><i class="bi bi-trash3-fill me-2"></i>Xóa bài viết</a></li>
+                                    }
                                 </ul>
                             </div>
                         </div>
@@ -78,18 +152,93 @@
 
                         <!-- Post Actions summary -->
                         <div class="d-flex justify-content-between text-muted small border-top border-bottom py-2 my-2">
-                            <span id="likeCount-@post.PostId"><i class="bi-heart-fill text-danger me-1"></i> @post.Likes.Count lượt thích</span>
-                            <span id="commentCount-@post.PostId"><i class="bi-chat-dots me-1"></i> @post.Comments.Count bình luận</span>
+                            @{
+                                var postTopReactions = post.Likes
+                                    .GroupBy(l => l.ReactionType)
+                                    .OrderByDescending(g => g.Count())
+                                    .Select(g => g.Key)
+                                    .Take(3)
+                                    .ToList();
+                                // Helper to map ReactionType to emoji
+                                string GetReactionEmoji(string type) => type switch {
+                                    "Like" => "👍",
+                                    "Love" => "❤️",
+                                    "Haha" => "😆",
+                                    "Wow" => "😮",
+                                    "Sad" => "😢",
+                                    "Angry" => "😡",
+                                    _ => "👍"
+                                };
+                            }
+                            <span id="likeCount-@post.PostId" class="cursor-pointer btn-view-reactions hover-underline" data-post-id="@post.PostId">
+                                <span class="reactions-emojis-container me-1">
+                                    @foreach (var r in postTopReactions)
+                                    {
+                                        <span>@GetReactionEmoji(r)</span>
+                                    }
+                                </span>
+                                <span class="reactions-count-text">@post.Likes.Count lượt thích</span>
+                            </span>
+                            <span id="commentCount-@post.PostId"><i class="bi bi-chat-dots me-1"></i> @post.Comments.Count bình luận</span>
                         </div>
 
                         <!-- Post buttons -->
-                        <div class="d-flex justify-content-around mb-3">
+                        <div class="d-flex justify-content-around mb-3 position-relative">
                             @{
-                                bool isLiked = post.Likes.Any(l => l.UserId == currentUser?.UserId);
+                                var userLike = post.Likes.FirstOrDefault(l => l.UserId == currentUser?.UserId);
+                                bool isLiked = userLike != null;
+                                string currentReaction = userLike?.ReactionType ?? "Like";
+                                
+                                // Map reaction type to button style
+                                string btnClass = isLiked ? (currentReaction switch {
+                                    "Like" => "text-primary",
+                                    "Love" => "text-danger",
+                                    "Haha" => "text-warning",
+                                    "Wow" => "text-warning",
+                                    "Sad" => "text-warning",
+                                    "Angry" => "text-danger",
+                                    _ => "text-primary"
+                                }) : "text-muted";
+                                
+                                string btnIcon = isLiked ? (currentReaction switch {
+                                    "Like" => "bi-hand-thumbs-up-fill",
+                                    "Love" => "bi-heart-fill",
+                                    "Haha" => "bi-emoji-laughing-fill",
+                                    "Wow" => "bi-emoji-surprise-fill",
+                                    "Sad" => "bi-emoji-frown-fill",
+                                    "Angry" => "bi-emoji-angry-fill",
+                                    _ => "bi-hand-thumbs-up-fill"
+                                }) : "bi-hand-thumbs-up";
+
+                                string btnText = isLiked ? (currentReaction switch {
+                                    "Like" => "Thích",
+                                    "Love" => "Yêu thích",
+                                    "Haha" => "Haha",
+                                    "Wow" => "Wow",
+                                    "Sad" => "Buồn",
+                                    "Angry" => "Phẫn nộ",
+                                    _ => "Thích"
+                                }) : "Thích";
                             }
-                            <button class="btn btn-link text-decoration-none fw-semibold py-1 w-50 btn-toggle-like @(isLiked ? "text-danger" : "text-muted")" data-post-id="@post.PostId">
-                                <i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart") me-1"></i>Thích
-                            </button>
+                            
+                            <div class="w-50 position-relative reaction-button-container">
+                                <button class="btn btn-link text-decoration-none fw-semibold py-1 w-100 btn-toggle-like @btnClass" data-post-id="@post.PostId" data-current-reaction="@(isLiked ? currentReaction : "")">
+                                    <i class="bi @btnIcon me-1"></i><span>@btnText</span>
+                                </button>
+                                
+                                <!-- Thanh thả cảm xúc phong cách Facebook -->
+                                <div class="reactions-flyout shadow border-0 rounded-pill p-2 d-none position-absolute animate-fade-in-up">
+                                    <div class="d-flex align-items-center gap-2 px-1">
+                                        <span class="reaction-emoji-item" data-reaction="Like" data-post-id="@post.PostId" title="Thích">👍</span>
+                                        <span class="reaction-emoji-item" data-reaction="Love" data-post-id="@post.PostId" title="Yêu thích">❤️</span>
+                                        <span class="reaction-emoji-item" data-reaction="Haha" data-post-id="@post.PostId" title="Haha">😆</span>
+                                        <span class="reaction-emoji-item" data-reaction="Wow" data-post-id="@post.PostId" title="Wow">😮</span>
+                                        <span class="reaction-emoji-item" data-reaction="Sad" data-post-id="@post.PostId" title="Buồn">😢</span>
+                                        <span class="reaction-emoji-item" data-reaction="Angry" data-post-id="@post.PostId" title="Phẫn nộ">😡</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 w-50 hover-primary" onclick="$('#commentSection-@post.PostId').toggle();"><i class="bi bi-chat-dots me-1"></i>Bình luận</button>
                         </div>
 
@@ -128,38 +277,128 @@
         </div>
     </div>
 
-    <!-- Cột phải: Gợi ý kết bạn -->
-    <div class="col-md-3 mb-4">
-        <div class="card sidebar-sticky">
-            <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
-                <h6 class="fw-bold mb-0 text-primary">Gợi ý kết bạn</h6>
-            </div>
-            <div class="card-body px-4 pb-4 pt-2">
-                <div class="d-flex flex-column gap-3">
-                    @if (recommendedUsers != null && recommendedUsers.Any())
-                    {
-                        foreach (var user in recommendedUsers)
-                        {
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-sm me-2.5" />
-                                    <div>
-                                        <h6 class="fw-semibold mb-0 small text-truncate" style="max-width: 100px;">@user.FullName</h6>
-                                        <span class="text-muted small" style="font-size: 0.75rem;">@@@user.Username</span>
+    <!-- Cột phải: Gợi ý kết bạn & Trò chuyện -->
+    @if (currentUser != null && !currentUser.IsAdmin)
+    {
+        <div class="col-md-3 mb-4">
+            <div class="sidebar-sticky d-flex flex-column gap-4">
+                @await Component.InvokeAsync("RecommendedUsers")
+
+                <!-- Hộp danh sách bạn bè để chat -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                        <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-chat-dots-fill me-2"></i>Danh sách bạn bè</h6>
+                    </div>
+                    <div class="card-body px-4 pb-4 pt-2">
+                        <div class="d-flex flex-column gap-3" id="chatFriendsList">
+                            @if (ViewBag.Friends != null && ((IEnumerable<Social_Website.Models.User>)ViewBag.Friends).Any())
+                            {
+                                foreach (var friend in (IEnumerable<Social_Website.Models.User>)ViewBag.Friends)
+                                {
+                                    <div class="d-flex align-items-center justify-content-between cursor-pointer btn-open-chat" data-friend-id="@friend.UserId" data-friend-name="@friend.FullName" data-friend-avatar="@friend.AvatarUrl">
+                                        <div class="d-flex align-items-center">
+                                            <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-sm me-2.5" />
+                                            <div>
+                                                <h6 class="fw-semibold mb-0 small text-truncate" style="max-width: 120px;">@friend.FullName</h6>
+                                                <span class="text-muted small" style="font-size: 0.7rem;">@@@friend.Username</span>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-light btn-sm rounded-circle p-1 border-0" style="width: 28px; height: 28px;">
+                                            <i class="bi bi-chat-fill text-primary" style="font-size: 0.85rem;"></i>
+                                        </button>
                                     </div>
-                                </div>
-                                <button class="btn btn-primary btn-sm py-1 px-3 btn-add-friend" data-user-id="@user.UserId" style="font-size: 0.8rem;">
-                                    <i class="bi bi-person-plus-fill me-1"></i>Thêm
-                                </button>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p class="text-muted small mb-0">Không có gợi ý mới.</p>
-                    }
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">Chưa có bạn bè nào. Hãy kết bạn để nhắn tin!</p>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+    }
+</div>
+
+<!-- Modal Báo cáo bài viết -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="reportModalLabel"><i class="bi bi-flag-fill text-warning me-2"></i>Báo cáo bài viết</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="reportPostForm">
+                <div class="modal-body py-3">
+                    <input type="hidden" id="reportPostId" name="postId" />
+                    <div class="mb-3">
+                        <label for="reportReason" class="form-label fw-semibold small">Lý do báo cáo vi phạm:</label>
+                        <select class="form-select form-control-modern" id="reportReason" required>
+                            <option value="" disabled selected>-- Chọn lý do --</option>
+                            <option value="Spam / Quảng cáo trái phép">Spam / Quảng cáo trái phép</option>
+                            <option value="Ngôn từ kích động thù địch / Nhạy cảm">Ngôn từ kích động thù địch / Nhạy cảm</option>
+                            <option value="Quấy rối / Đe dọa">Quấy rối / Đe dọa</option>
+                            <option value="Nội dung sai lệch / Lừa đảo">Nội dung sai lệch / Lừa đảo</option>
+                            <option value="Lý do khác">Lý do khác...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 d-none" id="otherReasonWrapper">
+                        <label for="otherReason" class="form-label fw-semibold small">Chi tiết lý do khác:</label>
+                        <textarea class="form-control form-control-modern" id="otherReason" rows="3" placeholder="Nhập lý do chi tiết (không quá 500 ký tự)..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">Gửi báo cáo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi tiết cảm xúc -->
+<div class="modal fade" id="reactionsDetailModal" tabindex="-1" aria-labelledby="reactionsDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" style="max-width: 400px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-2 pt-4 px-4 shadow-sm">
+                <h6 class="modal-title fw-bold text-primary" id="reactionsDetailModalLabel"><i class="bi bi-heart-fill text-danger me-2"></i>Người đã tương tác</h6>
+                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-2 px-4" style="max-height: 380px; overflow-y: auto;" id="reactionsModalBody">
+                <!-- Danh sách người tương tác sẽ hiển thị ở đây -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hộp thoại Chat nổi -->
+<div id="chatBox" class="card position-fixed border-0 shadow-lg d-none animate-fade-in-up" style="bottom: 0; right: 80px; width: 330px; z-index: 1040; border-radius: 16px 16px 0 0; transition: all 0.3s ease;">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3" style="border-top-left-radius: 16px; border-top-right-radius: 16px; cursor: pointer;" onclick="toggleMinimizeChat()">
+        <div class="d-flex align-items-center">
+            <img src="" id="chatFriendAvatar" class="avatar avatar-sm me-2 border border-white" style="width: 30px; height: 30px;" />
+            <div>
+                <div class="fw-bold small" id="chatFriendName" style="line-height: 1.2; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Name</div>
+                <span class="text-white-50" style="font-size: 0.65rem;">Bạn bè</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center" onclick="event.stopPropagation();">
+            <button type="button" class="btn btn-link text-white p-0" onclick="toggleMinimizeChat()"><i class="bi bi-dash-lg" id="minimizeChatIcon"></i></button>
+            <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeChatBox()"></button>
+        </div>
+    </div>
+    <div id="chatBoxCollapse" class="collapse show">
+        <div class="card-body p-3 bg-light" id="chatMessageList" style="height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+            <!-- Tin nhắn hiển thị ở đây -->
+        </div>
+        <div class="card-footer bg-white border-top p-2">
+            <form id="chatForm">
+                <input type="hidden" id="chatFriendId" />
+                <div class="input-group">
+                    <input type="text" id="chatInput" class="form-control form-control-sm form-control-modern" placeholder="Nhập tin nhắn..." autocomplete="off" required style="border-radius: 20px 0 0 20px;" />
+                    <button type="submit" class="btn btn-primary btn-sm px-3" style="border-radius: 0 20px 20px 0;"><i class="bi bi-send-fill"></i></button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -175,6 +414,30 @@
 
             // Nhận bài đăng mới
             connection.on("ReceiveNewPost", function (post) {
+                const isOwnPost = post.userId == "@currentUser?.UserId" || post.username == "@currentUser?.Username";
+                const isAdmin = "@(currentUser?.IsAdmin)" === "True";
+                const canDelete = isOwnPost || isAdmin;
+                
+                const dropdownItemsHtml = canDelete ? `
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-bookmark me-2"></i>Lưu bài viết</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger btn-delete-post-trigger" href="#" data-post-id="${post.postId}"><i class="bi bi-trash3-fill me-2"></i>Xóa bài viết</a></li>
+                ` : `
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-bookmark me-2"></i>Lưu bài viết</a></li>
+                    <li><a class="dropdown-item text-warning btn-report-post-trigger" href="#" data-post-id="${post.postId}"><i class="bi bi-flag me-2"></i>Báo cáo bài viết</a></li>
+                `;
+
+                const dropdownHtml = `
+                    <div class="dropdown">
+                        <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                            ${dropdownItemsHtml}
+                        </ul>
+                    </div>
+                `;
+
                 const postHtml = `
                     <div class="card card-hover mb-4 animate-fade-in-up" id="postCard-${post.postId}">
                         <div class="card-body p-4">
@@ -186,14 +449,35 @@
                                         <span class="text-muted small">${post.createdAt}</span>
                                     </div>
                                 </div>
+                                ${dropdownHtml}
                             </div>
                             <p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">${post.content}</p>
+                            
                             <div class="d-flex justify-content-between text-muted small border-top border-bottom py-2 my-2">
-                                <span id="likeCount-${post.postId}"><i class="bi-heart-fill text-danger me-1"></i> 0 lượt thích</span>
-                                <span id="commentCount-${post.postId}"><i class="bi-chat-dots me-1"></i> 0 bình luận</span>
+                                <span id="likeCount-${post.postId}" class="cursor-pointer btn-view-reactions hover-underline" data-post-id="${post.postId}">
+                                    <span class="reactions-emojis-container me-1"></span>
+                                    <span class="reactions-count-text">0 lượt thích</span>
+                                </span>
+                                <span id="commentCount-${post.postId}"><i class="bi bi-chat-dots me-1"></i> 0 bình luận</span>
                             </div>
-                            <div class="d-flex justify-content-around mb-3">
-                                <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 w-50 btn-toggle-like" data-post-id="${post.postId}"><i class="bi bi-heart me-1"></i>Thích</button>
+                            
+                            <div class="d-flex justify-content-around mb-3 position-relative">
+                                <div class="w-50 position-relative reaction-button-container">
+                                    <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 w-100 btn-toggle-like" data-post-id="${post.postId}" data-current-reaction="">
+                                        <i class="bi bi-hand-thumbs-up me-1"></i><span>Thích</span>
+                                    </button>
+                                    
+                                    <div class="reactions-flyout shadow border-0 rounded-pill p-2 d-none position-absolute animate-fade-in-up">
+                                        <div class="d-flex align-items-center gap-2 px-1">
+                                            <span class="reaction-emoji-item" data-reaction="Like" data-post-id="${post.postId}" title="Thích">👍</span>
+                                            <span class="reaction-emoji-item" data-reaction="Love" data-post-id="${post.postId}" title="Yêu thích">❤️</span>
+                                            <span class="reaction-emoji-item" data-reaction="Haha" data-post-id="${post.postId}" title="Haha">😆</span>
+                                            <span class="reaction-emoji-item" data-reaction="Wow" data-post-id="${post.postId}" title="Wow">😮</span>
+                                            <span class="reaction-emoji-item" data-reaction="Sad" data-post-id="${post.postId}" title="Buồn">😢</span>
+                                            <span class="reaction-emoji-item" data-reaction="Angry" data-post-id="${post.postId}" title="Phẫn nộ">😡</span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 w-50 hover-primary" onclick="$('#commentSection-${post.postId}').toggle();"><i class="bi bi-chat-dots me-1"></i>Bình luận</button>
                             </div>
                             <div class="comment-section" id="commentSection-${post.postId}">
@@ -239,22 +523,59 @@
                 }
             });
 
-            // Nhận cập nhật số lượt thích thời gian thực
-            connection.on("UpdateLikeCount", function (postId, likeCount) {
-                $(`#likeCount-${postId}`).html(`<i class="bi-heart-fill text-danger me-1"></i> ${likeCount} lượt thích`);
+            // Nhận cập nhật tương tác thời gian thực
+            connection.on("UpdatePostReactions", function (postId, totalCount, topReactions) {
+                const countSpan = $(`#likeCount-${postId}`);
+                if (countSpan.length > 0) {
+                    const emojiContainer = countSpan.find(".reactions-emojis-container");
+                    emojiContainer.empty();
+                    
+                    const emojiMap = {
+                        "Like": "👍",
+                        "Love": "❤️",
+                        "Haha": "😆",
+                        "Wow": "😮",
+                        "Sad": "😢",
+                        "Angry": "😡"
+                    };
+                    
+                    topReactions.forEach(function (r) {
+                        emojiContainer.append(`<span>${emojiMap[r] || "👍"}</span>`);
+                    });
+                    
+                    countSpan.find(".reactions-count-text").text(`${totalCount} lượt thích`);
+                    
+                    // Cập nhật lại UI nút Thích cho khớp với số lượt thích mới nhận được qua SignalR
+                    // Nếu là 0 lượt thích, xóa cảm xúc của nút hiện tại nếu có
+                    if (totalCount === 0) {
+                        updateLikeButtonUI(postId, false, null);
+                    }
+                }
             });
 
             connection.start().catch(err => console.error(err.toString()));
+
+            // Ẩn cảnh báo khi người dùng bắt đầu sửa nội dung
+            $("#postContent").on("input", function () {
+                $("#postValidationAlert").addClass("d-none");
+            });
 
             // 2. Gửi bài đăng mới bằng AJAX
             $("#createPostForm").submit(function (e) {
                 e.preventDefault();
                 const content = $("#postContent").val();
+                
                 $.post("/Post/Create", { content: content }, function (res) {
                     if (res.success) {
                         $("#postContent").val("");
+                        $("#postValidationAlert").addClass("d-none");
                     } else {
-                        alert(res.message);
+                        if (res.isViolent) {
+                            $("#postValidationMessage").text(res.message);
+                            $("#postValidationAlert").removeClass("d-none");
+                        } else {
+                            alert(res.message);
+                        }
                     }
                 });
             });
@@ -287,24 +608,336 @@
                 });
             });
 
-            // 5. Thích / Thả tim bài viết bằng AJAX
-            $(document).on("click", ".btn-toggle-like", function () {
-                const postId = $(this).data("post-id");
-                const $btn = $(this);
-                $.post("/Post/ToggleLike", { postId: postId }, function (res) {
+            // Gửi cảm xúc lên server
+            function sendReaction(postId, reactionType) {
+                $.post("/Post/ToggleLike", { postId: postId, reactionType: reactionType }, function (res) {
                     if (res.success) {
-                        if (res.isLiked) {
-                            $btn.removeClass("text-muted").addClass("text-danger");
-                            $btn.find("i").removeClass("bi-heart").addClass("bi-heart-fill");
-                        } else {
-                            $btn.removeClass("text-danger").addClass("text-muted");
-                            $btn.find("i").removeClass("bi-heart-fill").addClass("bi-heart");
-                        }
+                        updateLikeButtonUI(postId, res.isLiked, res.reactionType);
                     } else {
                         alert(res.message);
                     }
                 });
+            }
+
+            // Cập nhật giao diện nút Thích cục bộ
+            function updateLikeButtonUI(postId, isLiked, reactionType) {
+                const btn = $(`.btn-toggle-like[data-post-id="${postId}"]`);
+                if (btn.length === 0) return;
+                
+                btn.removeClass("text-muted text-primary text-danger text-warning");
+                
+                if (isLiked) {
+                    btn.attr("data-current-reaction", reactionType);
+                    
+                    let btnClass = "text-muted";
+                    let btnIcon = "bi-hand-thumbs-up";
+                    let btnText = "Thích";
+                    
+                    switch (reactionType) {
+                        case "Like":
+                            btnClass = "text-primary";
+                            btnIcon = "bi-hand-thumbs-up-fill";
+                            btnText = "Thích";
+                            break;
+                        case "Love":
+                            btnClass = "text-danger";
+                            btnIcon = "bi-heart-fill";
+                            btnText = "Yêu thích";
+                            break;
+                        case "Haha":
+                            btnClass = "text-warning";
+                            btnIcon = "bi-emoji-laughing-fill";
+                            btnText = "Haha";
+                            break;
+                        case "Wow":
+                            btnClass = "text-warning";
+                            btnIcon = "bi-emoji-surprise-fill";
+                            btnText = "Wow";
+                            break;
+                        case "Sad":
+                            btnClass = "text-warning";
+                            btnIcon = "bi-emoji-frown-fill";
+                            btnText = "Buồn";
+                            break;
+                        case "Angry":
+                            btnClass = "text-danger";
+                            btnIcon = "bi-emoji-angry-fill";
+                            btnText = "Phẫn nộ";
+                            break;
+                    }
+                    
+                    btn.addClass(btnClass);
+                    btn.find("i").attr("class", `bi ${btnIcon} me-1`);
+                    btn.find("span").text(btnText);
+                } else {
+                    btn.attr("data-current-reaction", "");
+                    btn.addClass("text-muted");
+                    btn.find("i").attr("class", "bi bi-hand-thumbs-up me-1");
+                    btn.find("span").text("Thích");
+                }
+            }
+
+            // Click trực tiếp nút Thích (Toggle mặc định / Hủy)
+            $(document).on("click", ".btn-toggle-like", function () {
+                const postId = $(this).data("post-id");
+                const currentReaction = $(this).attr("data-current-reaction");
+                const reactionToToggle = currentReaction ? currentReaction : "Like";
+                
+                sendReaction(postId, reactionToToggle);
             });
+
+            // Chọn cảm xúc cụ thể từ bảng Emoji
+            $(document).on("click", ".reaction-emoji-item", function (e) {
+                e.stopPropagation();
+                const postId = $(this).data("post-id");
+                const reaction = $(this).data("reaction");
+                
+                sendReaction(postId, reaction);
+            });
+
+            // Click vào thống kê để xem ai đã thả cảm xúc
+            $(document).on("click", ".btn-view-reactions", function () {
+                const postId = $(this).data("post-id");
+                
+                $("#reactionsModalBody").html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-muted"></span></div>');
+                $("#reactionsDetailModal").modal("show");
+                
+                $.get("/Post/GetPostReactions", { postId: postId }, function (res) {
+                    if (res.success) {
+                        $("#reactionsModalBody").empty();
+                        
+                        if (res.reactions.length === 0) {
+                            $("#reactionsModalBody").html('<div class="text-center text-muted small py-3">Chưa có ai bày tỏ cảm xúc.</div>');
+                            return;
+                        }
+                        
+                        const emojiMap = {
+                            "Like": "👍",
+                            "Love": "❤️",
+                            "Haha": "😆",
+                            "Wow": "😮",
+                            "Sad": "😢",
+                            "Angry": "😡"
+                        };
+                        
+                        res.reactions.forEach(function (item) {
+                            const emoji = emojiMap[item.reactionType] || "👍";
+                            const rowHtml = `
+                                <div class="d-flex align-items-center justify-content-between py-2 border-bottom border-light">
+                                    <div class="d-flex align-items-center">
+                                        <img src="${item.avatarUrl}" alt="${item.fullName}" class="avatar avatar-sm me-2.5" />
+                                        <div>
+                                            <h6 class="fw-semibold mb-0 small" style="font-size: 0.85rem;">${item.fullName}</h6>
+                                            <span class="text-muted small" style="font-size: 0.7rem;">@@${item.username}</span>
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 1.35rem;">${emoji}</span>
+                                </div>
+                            `;
+                            $("#reactionsModalBody").append(rowHtml);
+                        });
+                    } else {
+                        $("#reactionsModalBody").html(`<div class="text-center text-danger small py-3">${res.message}</div>`);
+                    }
+                });
+            });
+
+            // Gửi yêu cầu xóa bài đăng qua AJAX
+            $(document).on("click", ".btn-delete-post-trigger", function (e) {
+                e.preventDefault();
+                const postId = $(this).data("post-id");
+                
+                if (confirm("Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.")) {
+                    $.post("/Post/Delete", { id: postId }, function (res) {
+                        if (res.success) {
+                            // Sẽ tự động xóa qua SignalR ReceiveDeletedPost
+                        } else {
+                            alert(res.message);
+                        }
+                    });
+                }
+            });
+
+            // Nhận sự kiện xóa bài viết thời gian thực
+            connection.on("ReceiveDeletedPost", function (postId) {
+                $(`#postCard-${postId}`).fadeOut(350, function () {
+                    $(this).remove();
+                });
+            });
+
+            // 6. Kích hoạt Modal Báo cáo bài viết
+            $(document).on("click", ".btn-report-post-trigger", function (e) {
+                e.preventDefault();
+                const postId = $(this).data("post-id");
+                $("#reportPostId").val(postId);
+                $("#reportReason").val("");
+                $("#otherReason").val("");
+                $("#otherReasonWrapper").addClass("d-none");
+                $("#otherReason").attr("required", false);
+                $("#reportModal").modal("show");
+            });
+
+            // 7. Ẩn/Hiện lý do khác
+            $("#reportReason").change(function () {
+                if ($(this).val() === "Lý do khác") {
+                    $("#otherReasonWrapper").removeClass("d-none");
+                    $("#otherReason").attr("required", true);
+                } else {
+                    $("#otherReasonWrapper").addClass("d-none");
+                    $("#otherReason").attr("required", false);
+                }
+            });
+
+            // 8. Submit Báo cáo bài viết qua AJAX
+            $("#reportPostForm").submit(function (e) {
+                e.preventDefault();
+                const postId = $("#reportPostId").val();
+                let reason = $("#reportReason").val();
+                if (reason === "Lý do khác") {
+                    reason = $("#otherReason").val();
+                }
+                
+                $.post("/Report/Create", { postId: postId, reason: reason }, function (res) {
+                    $("#reportModal").modal("hide");
+                    alert(res.message);
+                });
+            });
+
+            // 9. Nhận tin nhắn trực tiếp qua SignalR
+            connection.on("ReceiveDirectMessage", function (message) {
+                const currentUserId = "@currentUser?.UserId";
+                const activeFriendId = $("#chatFriendId").val();
+                
+                // Nếu tin nhắn là giữa người dùng hiện tại và người bạn đang mở chat
+                if ((message.senderId == currentUserId && message.receiverId == activeFriendId) ||
+                    (message.senderId == activeFriendId && message.receiverId == currentUserId)) {
+                    
+                    const isOwn = message.senderId == currentUserId;
+                    const messageHtml = isOwn ? `
+                        <div class="d-flex align-items-start justify-content-end">
+                            <div class="p-2 bg-primary text-white rounded shadow-sm small" style="max-width: 80%; word-break: break-word;">
+                                ${message.content}
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="d-flex align-items-start gap-2">
+                            <img src="${$("#chatFriendAvatar").attr('src')}" class="avatar avatar-sm rounded-circle" style="width: 24px; height: 24px;" />
+                            <div class="p-2 bg-white rounded shadow-sm text-dark small" style="max-width: 80%; word-break: break-word;">
+                                ${message.content}
+                            </div>
+                        </div>
+                    `;
+                    
+                    $("#chatMessageList").append(messageHtml);
+                    scrollChatToBottom();
+                } else if (message.receiverId == currentUserId) {
+                    // Nếu là tin nhắn gửi đến người dùng hiện tại nhưng chưa mở chat
+                    const friendRow = $(`.btn-open-chat[data-friend-id="${message.senderId}"]`);
+                    if (friendRow.length > 0) {
+                        friendRow.find(".btn-light").addClass("bg-danger-subtle");
+                        friendRow.find(".bi-chat-fill").removeClass("text-primary").addClass("text-danger");
+                    }
+                }
+            });
+
+            // 10. Mở hộp chat khi click vào bạn bè
+            $(document).on("click", ".btn-open-chat", function () {
+                const friendId = $(this).data("friend-id");
+                const friendName = $(this).data("friend-name");
+                const friendAvatar = $(this).data("friend-avatar");
+                
+                // Khôi phục icon chat bình thường
+                $(this).find(".btn-light").removeClass("bg-danger-subtle");
+                $(this).find(".bi-chat-fill").removeClass("text-danger").addClass("text-primary");
+
+                $("#chatFriendId").val(friendId);
+                $("#chatFriendName").text(friendName);
+                $("#chatFriendAvatar").attr("src", friendAvatar);
+                
+                $("#chatMessageList").html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-muted"></span></div>');
+                $("#chatBox").removeClass("d-none");
+                
+                // Mở rộng hộp chat
+                $("#chatBoxCollapse").addClass("show");
+                $("#minimizeChatIcon").removeClass("bi-plus-lg").addClass("bi-dash-lg");
+
+                // Tải lịch sử tin nhắn
+                $.get("/Chat/GetMessages", { friendId: friendId }, function (res) {
+                    if (res.success) {
+                        $("#chatMessageList").empty();
+                        const currentUserId = "@currentUser?.UserId";
+                        
+                        if (res.messages.length === 0) {
+                            $("#chatMessageList").html('<div class="text-center text-muted small py-4">Bắt đầu trò chuyện bằng cách gửi tin nhắn!</div>');
+                        } else {
+                            res.messages.forEach(function (msg) {
+                                const isOwn = msg.senderId == currentUserId;
+                                const msgHtml = isOwn ? `
+                                    <div class="d-flex align-items-start justify-content-end">
+                                        <div class="p-2 bg-primary text-white rounded shadow-sm small" style="max-width: 80%; word-break: break-word;">
+                                            ${msg.content}
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="d-flex align-items-start gap-2">
+                                        <img src="${friendAvatar}" class="avatar avatar-sm rounded-circle" style="width: 24px; height: 24px;" />
+                                        <div class="p-2 bg-white rounded shadow-sm text-dark small" style="max-width: 80%; word-break: break-word;">
+                                            ${msg.content}
+                                        </div>
+                                    </div>
+                                `;
+                                $("#chatMessageList").append(msgHtml);
+                            });
+                            scrollChatToBottom();
+                        }
+                    } else {
+                        $("#chatMessageList").html(`<div class="text-center text-danger small py-4">${res.message}</div>`);
+                    }
+                });
+            });
+
+            // 11. Gửi tin nhắn qua form chat
+            $("#chatForm").submit(function (e) {
+                e.preventDefault();
+                const friendId = $("#chatFriendId").val();
+                const content = $("#chatInput").val().trim();
+                
+                if (!content) return;
+                
+                $("#chatInput").val(""); // Clear input ngay lập tức
+                
+                $.post("/Chat/SendMessage", { receiverId: friendId, content: content }, function (res) {
+                    if (!res.success) {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            function scrollChatToBottom() {
+                const list = document.getElementById("chatMessageList");
+                if (list) {
+                    list.scrollTop = list.scrollHeight;
+                }
+            }
         });
+
+        // Hàm điều khiển chat toàn cục
+        function closeChatBox() {
+            $("#chatBox").addClass("d-none");
+            $("#chatFriendId").val("");
+        }
+
+        function toggleMinimizeChat() {
+            const collapseEl = document.getElementById('chatBoxCollapse');
+            const collapse = bootstrap.Collapse.getOrCreateInstance(collapseEl);
+            collapse.toggle();
+            
+            const icon = $("#minimizeChatIcon");
+            if (icon.hasClass("bi-dash-lg")) {
+                icon.removeClass("bi-dash-lg").addClass("bi-plus-lg");
+            } else {
+                icon.removeClass("bi-plus-lg").addClass("bi-dash-lg");
+            }
+        }
     </script>
 }
