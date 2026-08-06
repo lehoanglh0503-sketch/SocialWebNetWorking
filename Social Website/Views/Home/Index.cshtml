@@ -265,8 +265,46 @@
                             <div class="comment-list d-flex flex-column gap-2 mb-3" id="commentList-@post.PostId">
                                 @foreach (var comment in post.Comments.Where(c => c.ParentCommentId == null).OrderBy(c => c.CreatedAt))
                                 {
-                                    bool isCommentLiked = comment.Likes.Any(l => l.UserId == currentUser?.UserId);
-                                    int commentLikeCount = comment.Likes.Count;
+                                    var userCommentLike = comment.Likes.FirstOrDefault(l => l.UserId == currentUser?.UserId);
+                                    bool isCommentLiked = userCommentLike != null;
+                                    string currentCommentReaction = userCommentLike?.ReactionType ?? "Like";
+
+                                    string commentBtnClass = isCommentLiked ? (currentCommentReaction switch {
+                                        "Like" => "text-primary",
+                                        "Love" => "text-danger",
+                                        "Haha" => "text-warning",
+                                        "Wow" => "text-warning",
+                                        "Sad" => "text-warning",
+                                        "Angry" => "text-danger",
+                                        _ => "text-primary"
+                                    }) : "text-muted";
+
+                                    string commentBtnIcon = isCommentLiked ? (currentCommentReaction switch {
+                                        "Like" => "bi-hand-thumbs-up-fill",
+                                        "Love" => "bi-heart-fill",
+                                        "Haha" => "bi-emoji-laughing-fill",
+                                        "Wow" => "bi-emoji-surprise-fill",
+                                        "Sad" => "bi-emoji-frown-fill",
+                                        "Angry" => "bi-emoji-angry-fill",
+                                        _ => "bi-hand-thumbs-up-fill"
+                                    }) : "bi-hand-thumbs-up";
+
+                                    string commentBtnText = isCommentLiked ? (currentCommentReaction switch {
+                                        "Like" => "Thích",
+                                        "Love" => "Yêu thích",
+                                        "Haha" => "Haha",
+                                        "Wow" => "Wow",
+                                        "Sad" => "Buồn",
+                                        "Angry" => "Phẫn nộ",
+                                        _ => "Thích"
+                                    }) : "Thích";
+
+                                    var commentTopReactions = comment.Likes
+                                        .GroupBy(l => l.ReactionType)
+                                        .OrderByDescending(g => g.Count())
+                                        .Select(g => g.Key)
+                                        .Take(3)
+                                        .ToList();
 
                                     <div class="d-flex flex-column mb-2" id="commentItem-@comment.CommentId">
                                         <!-- Bình luận chính -->
@@ -288,11 +326,35 @@
                                                 <p class="mb-1 mt-1">@comment.Content</p>
 
                                                 <!-- Thanh nút Thích & Trả lời bình luận -->
-                                                <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1">
-                                                    <button type="button" class="btn btn-link p-0 text-decoration-none small btn-toggle-comment-like @(isCommentLiked ? "text-primary fw-bold" : "text-muted")" data-comment-id="@comment.CommentId" style="font-size: 0.78rem;">
-                                                        <i class="bi @(isCommentLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up") me-1"></i><span>Thích</span>
-                                                        <span class="comment-like-count badge rounded-pill bg-light text-dark ms-1 @(commentLikeCount > 0 ? "" : "d-none")">❤️ @commentLikeCount</span>
-                                                    </button>
+                                                <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1 position-relative">
+                                                    <div class="position-relative comment-reaction-container">
+                                                        <button type="button" class="btn btn-link p-0 text-decoration-none small btn-toggle-comment-like @commentBtnClass" data-comment-id="@comment.CommentId" data-current-reaction="@(isCommentLiked ? currentCommentReaction : "")" style="font-size: 0.78rem;">
+                                                            <i class="bi @commentBtnIcon me-1"></i><span>@commentBtnText</span>
+                                                        </button>
+                                                        <!-- Flyout 6 Emojis cho Bình luận -->
+                                                        <div class="comment-reactions-flyout shadow border-0 rounded-pill p-1 d-none position-absolute animate-fade-in-up" style="bottom: 100%; left: 0; z-index: 1050; background: white;">
+                                                            <div class="d-flex align-items-center gap-1.5 px-1">
+                                                                <span class="comment-reaction-emoji-item" data-reaction="Like" data-comment-id="@comment.CommentId" title="Thích" style="cursor: pointer; font-size: 1.1rem;">👍</span>
+                                                                <span class="comment-reaction-emoji-item" data-reaction="Love" data-comment-id="@comment.CommentId" title="Yêu thích" style="cursor: pointer; font-size: 1.1rem;">❤️</span>
+                                                                <span class="comment-reaction-emoji-item" data-reaction="Haha" data-comment-id="@comment.CommentId" title="Haha" style="cursor: pointer; font-size: 1.1rem;">😆</span>
+                                                                <span class="comment-reaction-emoji-item" data-reaction="Wow" data-comment-id="@comment.CommentId" title="Wow" style="cursor: pointer; font-size: 1.1rem;">😮</span>
+                                                                <span class="comment-reaction-emoji-item" data-reaction="Sad" data-comment-id="@comment.CommentId" title="Buồn" style="cursor: pointer; font-size: 1.1rem;">😢</span>
+                                                                <span class="comment-reaction-emoji-item" data-reaction="Angry" data-comment-id="@comment.CommentId" title="Phẫn nộ" style="cursor: pointer; font-size: 1.1rem;">😡</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Huy hiệu thống kê cảm xúc bình luận -->
+                                                    <span class="comment-like-count cursor-pointer btn-view-comment-reactions hover-underline @(comment.Likes.Count > 0 ? "" : "d-none")" data-comment-id="@comment.CommentId" style="font-size: 0.75rem;">
+                                                        <span class="comment-emojis-container me-1">
+                                                            @foreach (var r in commentTopReactions)
+                                                            {
+                                                                <span>@GetReactionEmoji(r)</span>
+                                                            }
+                                                        </span>
+                                                        <span class="comment-count-num fw-semibold">@comment.Likes.Count</span>
+                                                    </span>
+
                                                     <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="@comment.CommentId" data-user-name="@comment.User?.FullName" data-post-id="@post.PostId" style="font-size: 0.78rem;">
                                                         <i class="bi bi-reply-fill me-1"></i>Trả lời
                                                     </button>
@@ -304,8 +366,46 @@
                                         <div class="reply-list ms-4 ps-3 border-start mt-2 d-flex flex-column gap-2" id="replyList-@comment.CommentId">
                                             @foreach (var reply in comment.Replies.OrderBy(r => r.CreatedAt))
                                             {
-                                                bool isReplyLiked = reply.Likes.Any(l => l.UserId == currentUser?.UserId);
-                                                int replyLikeCount = reply.Likes.Count;
+                                                var userReplyLike = reply.Likes.FirstOrDefault(l => l.UserId == currentUser?.UserId);
+                                                bool isReplyLiked = userReplyLike != null;
+                                                string currentReplyReaction = userReplyLike?.ReactionType ?? "Like";
+
+                                                string replyBtnClass = isReplyLiked ? (currentReplyReaction switch {
+                                                    "Like" => "text-primary",
+                                                    "Love" => "text-danger",
+                                                    "Haha" => "text-warning",
+                                                    "Wow" => "text-warning",
+                                                    "Sad" => "text-warning",
+                                                    "Angry" => "text-danger",
+                                                    _ => "text-primary"
+                                                }) : "text-muted";
+
+                                                string replyBtnIcon = isReplyLiked ? (currentReplyReaction switch {
+                                                    "Like" => "bi-hand-thumbs-up-fill",
+                                                    "Love" => "bi-heart-fill",
+                                                    "Haha" => "bi-emoji-laughing-fill",
+                                                    "Wow" => "bi-emoji-surprise-fill",
+                                                    "Sad" => "bi-emoji-frown-fill",
+                                                    "Angry" => "bi-emoji-angry-fill",
+                                                    _ => "bi-hand-thumbs-up-fill"
+                                                }) : "bi-hand-thumbs-up";
+
+                                                string replyBtnText = isReplyLiked ? (currentReplyReaction switch {
+                                                    "Like" => "Thích",
+                                                    "Love" => "Yêu thích",
+                                                    "Haha" => "Haha",
+                                                    "Wow" => "Wow",
+                                                    "Sad" => "Buồn",
+                                                    "Angry" => "Phẫn nộ",
+                                                    _ => "Thích"
+                                                }) : "Thích";
+
+                                                var replyTopReactions = reply.Likes
+                                                    .GroupBy(l => l.ReactionType)
+                                                    .OrderByDescending(g => g.Count())
+                                                    .Select(g => g.Key)
+                                                    .Take(3)
+                                                    .ToList();
 
                                                 <div class="d-flex position-relative" id="commentItem-@reply.CommentId">
                                                     <img src="@reply.User?.AvatarUrl" alt="@reply.User?.FullName" class="avatar avatar-xs me-2 mt-1" style="width: 28px; height: 28px;" />
@@ -323,11 +423,34 @@
                                                             </div>
                                                         </div>
                                                         <p class="mb-1 mt-1 small">@reply.Content</p>
-                                                        <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1">
-                                                            <button type="button" class="btn btn-link p-0 text-decoration-none small btn-toggle-comment-like @(isReplyLiked ? "text-primary fw-bold" : "text-muted")" data-comment-id="@reply.CommentId" style="font-size: 0.75rem;">
-                                                                <i class="bi @(isReplyLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up") me-1"></i><span>Thích</span>
-                                                                <span class="comment-like-count badge rounded-pill bg-white text-dark ms-1 @(replyLikeCount > 0 ? "" : "d-none")">❤️ @replyLikeCount</span>
-                                                            </button>
+                                                        <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1 position-relative">
+                                                            <div class="position-relative comment-reaction-container">
+                                                                <button type="button" class="btn btn-link p-0 text-decoration-none small btn-toggle-comment-like @replyBtnClass" data-comment-id="@reply.CommentId" data-current-reaction="@(isReplyLiked ? currentReplyReaction : "")" style="font-size: 0.75rem;">
+                                                                    <i class="bi @replyBtnIcon me-1"></i><span>@replyBtnText</span>
+                                                                </button>
+                                                                <!-- Flyout 6 Emojis cho Phản hồi -->
+                                                                <div class="comment-reactions-flyout shadow border-0 rounded-pill p-1 d-none position-absolute animate-fade-in-up" style="bottom: 100%; left: 0; z-index: 1050; background: white;">
+                                                                    <div class="d-flex align-items-center gap-1.5 px-1">
+                                                                        <span class="comment-reaction-emoji-item" data-reaction="Like" data-comment-id="@reply.CommentId" title="Thích" style="cursor: pointer; font-size: 1rem;">👍</span>
+                                                                        <span class="comment-reaction-emoji-item" data-reaction="Love" data-comment-id="@reply.CommentId" title="Yêu thích" style="cursor: pointer; font-size: 1rem;">❤️</span>
+                                                                        <span class="comment-reaction-emoji-item" data-reaction="Haha" data-comment-id="@reply.CommentId" title="Haha" style="cursor: pointer; font-size: 1rem;">😆</span>
+                                                                        <span class="comment-reaction-emoji-item" data-reaction="Wow" data-comment-id="@reply.CommentId" title="Wow" style="cursor: pointer; font-size: 1rem;">😮</span>
+                                                                        <span class="comment-reaction-emoji-item" data-reaction="Sad" data-comment-id="@reply.CommentId" title="Buồn" style="cursor: pointer; font-size: 1rem;">😢</span>
+                                                                        <span class="comment-reaction-emoji-item" data-reaction="Angry" data-comment-id="@reply.CommentId" title="Phẫn nộ" style="cursor: pointer; font-size: 1rem;">😡</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <span class="comment-like-count cursor-pointer btn-view-comment-reactions hover-underline @(reply.Likes.Count > 0 ? "" : "d-none")" data-comment-id="@reply.CommentId" style="font-size: 0.72rem;">
+                                                                <span class="comment-emojis-container me-1">
+                                                                    @foreach (var r in replyTopReactions)
+                                                                    {
+                                                                        <span>@GetReactionEmoji(r)</span>
+                                                                    }
+                                                                </span>
+                                                                <span class="comment-count-num fw-semibold">@reply.Likes.Count</span>
+                                                            </span>
+
                                                             <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="@comment.CommentId" data-user-name="@reply.User?.FullName" data-post-id="@post.PostId" style="font-size: 0.75rem;">
                                                                 <i class="bi bi-reply-fill me-1"></i>Trả lời
                                                             </button>
@@ -462,6 +585,21 @@
             </div>
             <div class="modal-body py-2 px-4" style="max-height: 380px; overflow-y: auto;" id="reactionsModalBody">
                 <!-- Danh sách người tương tác sẽ hiển thị ở đây -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi tiết cảm xúc Bình luận -->
+<div class="modal fade" id="commentReactionsDetailModal" tabindex="-1" aria-labelledby="commentReactionsDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" style="max-width: 400px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-2 pt-4 px-4 shadow-sm">
+                <h6 class="modal-title fw-bold text-primary" id="commentReactionsDetailModalLabel"><i class="bi bi-heart-fill text-danger me-2"></i>Người đã thả cảm xúc bình luận</h6>
+                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-2 px-4" style="max-height: 380px; overflow-y: auto;" id="commentReactionsModalBody">
+                <!-- Danh sách người tương tác bình luận sẽ hiển thị ở đây -->
             </div>
         </div>
     </div>
@@ -602,6 +740,9 @@
 
             // Nhận bình luận mới (hỗ trợ cả bình luận gốc và phản hồi bình luận)
             connection.on("ReceiveNewComment", function (comment) {
+                // Ngăn chặn lặp trùng bình luận nếu đã có trong DOM
+                if ($(`#commentItem-${comment.commentId}`).length > 0) return;
+
                 const currentUserId = "@currentUser?.UserId";
                 const isCurrentUserAdmin = @(currentUser != null && currentUser.IsAdmin ? "true" : "false");
                 const canDelete = (comment.userId == currentUserId || comment.postAuthorUserId == currentUserId || isCurrentUserAdmin);
@@ -612,7 +753,17 @@
                     </button>
                 ` : '';
 
-                if (comment.parentCommentId) {
+                const parentId = comment.parentCommentId || comment.ParentCommentId;
+
+                if (parentId && parentId != 0) {
+                    let $replyList = $(`#replyList-${parentId}`);
+                    if ($replyList.length === 0) {
+                        $(`#commentItem-${parentId}`).append(`
+                            <div class="reply-list ms-4 ps-3 border-start mt-2 d-flex flex-column gap-2" id="replyList-${parentId}"></div>
+                        `);
+                        $replyList = $(`#replyList-${parentId}`);
+                    }
+
                     const replyHtml = `
                         <div class="d-flex position-relative animate-fade-in-up" id="commentItem-${comment.commentId}">
                             <img src="${comment.avatarUrl}" alt="${comment.fullName}" class="avatar avatar-xs me-2 mt-1" style="width: 28px; height: 28px;" />
@@ -625,19 +776,36 @@
                                     </div>
                                 </div>
                                 <p class="mb-1 mt-1 small">${comment.content}</p>
-                                <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1">
-                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-toggle-comment-like" data-comment-id="${comment.commentId}" style="font-size: 0.75rem;">
-                                        <i class="bi bi-hand-thumbs-up me-1"></i><span>Thích</span>
-                                        <span class="comment-like-count badge rounded-pill bg-white text-dark ms-1 d-none">❤️ 0</span>
-                                    </button>
-                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="${comment.parentCommentId}" data-user-name="${comment.fullName}" data-post-id="${comment.postId}" style="font-size: 0.75rem;">
+                                <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1 position-relative">
+                                    <div class="position-relative comment-reaction-container">
+                                        <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-toggle-comment-like" data-comment-id="${comment.commentId}" style="font-size: 0.75rem;">
+                                            <i class="bi bi-hand-thumbs-up me-1"></i><span>Thích</span>
+                                        </button>
+                                        <div class="comment-reactions-flyout shadow border-0 rounded-pill p-1 d-none position-absolute animate-fade-in-up" style="bottom: 100%; left: 0; z-index: 1050; background: white;">
+                                            <div class="d-flex align-items-center gap-1.5 px-1">
+                                                <span class="comment-reaction-emoji-item" data-reaction="Like" data-comment-id="${comment.commentId}" title="Thích" style="cursor: pointer; font-size: 1rem;">👍</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Love" data-comment-id="${comment.commentId}" title="Yêu thích" style="cursor: pointer; font-size: 1rem;">❤️</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Haha" data-comment-id="${comment.commentId}" title="Haha" style="cursor: pointer; font-size: 1rem;">😆</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Wow" data-comment-id="${comment.commentId}" title="Wow" style="cursor: pointer; font-size: 1rem;">😮</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Sad" data-comment-id="${comment.commentId}" title="Buồn" style="cursor: pointer; font-size: 1rem;">😢</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Angry" data-comment-id="${comment.commentId}" title="Phẫn nộ" style="cursor: pointer; font-size: 1rem;">😡</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <span class="comment-like-count cursor-pointer btn-view-comment-reactions hover-underline d-none" data-comment-id="${comment.commentId}" style="font-size: 0.72rem;">
+                                        <span class="comment-emojis-container me-1"></span>
+                                        <span class="comment-count-num fw-semibold">0</span>
+                                    </span>
+
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="${parentId}" data-user-name="${comment.fullName}" data-post-id="${comment.postId}" style="font-size: 0.75rem;">
                                         <i class="bi bi-reply-fill me-1"></i>Trả lời
                                     </button>
                                 </div>
                             </div>
                         </div>
                     `;
-                    $(`#replyList-${comment.parentCommentId}`).append(replyHtml);
+                    $replyList.append(replyHtml);
                 } else {
                     const commentHtml = `
                         <div class="d-flex flex-column mb-2 animate-fade-in-up" id="commentItem-${comment.commentId}">
@@ -652,11 +820,28 @@
                                         </div>
                                     </div>
                                     <p class="mb-1 mt-1">${comment.content}</p>
-                                    <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1">
-                                        <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-toggle-comment-like" data-comment-id="${comment.commentId}" style="font-size: 0.78rem;">
-                                            <i class="bi bi-hand-thumbs-up me-1"></i><span>Thích</span>
-                                            <span class="comment-like-count badge rounded-pill bg-light text-dark ms-1 d-none">❤️ 0</span>
-                                        </button>
+                                    <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1 position-relative">
+                                        <div class="position-relative comment-reaction-container">
+                                            <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-toggle-comment-like" data-comment-id="${comment.commentId}" style="font-size: 0.78rem;">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i><span>Thích</span>
+                                            </button>
+                                            <div class="comment-reactions-flyout shadow border-0 rounded-pill p-1 d-none position-absolute animate-fade-in-up" style="bottom: 100%; left: 0; z-index: 1050; background: white;">
+                                                <div class="d-flex align-items-center gap-1.5 px-1">
+                                                    <span class="comment-reaction-emoji-item" data-reaction="Like" data-comment-id="${comment.commentId}" title="Thích" style="cursor: pointer; font-size: 1.1rem;">👍</span>
+                                                    <span class="comment-reaction-emoji-item" data-reaction="Love" data-comment-id="${comment.commentId}" title="Yêu thích" style="cursor: pointer; font-size: 1.1rem;">❤️</span>
+                                                    <span class="comment-reaction-emoji-item" data-reaction="Haha" data-comment-id="${comment.commentId}" title="Haha" style="cursor: pointer; font-size: 1.1rem;">😆</span>
+                                                    <span class="comment-reaction-emoji-item" data-reaction="Wow" data-comment-id="${comment.commentId}" title="Wow" style="cursor: pointer; font-size: 1.1rem;">😮</span>
+                                                    <span class="comment-reaction-emoji-item" data-reaction="Sad" data-comment-id="${comment.commentId}" title="Buồn" style="cursor: pointer; font-size: 1.1rem;">😢</span>
+                                                    <span class="comment-reaction-emoji-item" data-reaction="Angry" data-comment-id="${comment.commentId}" title="Phẫn nộ" style="cursor: pointer; font-size: 1.1rem;">😡</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <span class="comment-like-count cursor-pointer btn-view-comment-reactions hover-underline d-none" data-comment-id="${comment.commentId}" style="font-size: 0.75rem;">
+                                            <span class="comment-emojis-container me-1"></span>
+                                            <span class="comment-count-num fw-semibold">0</span>
+                                        </span>
+
                                         <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="${comment.commentId}" data-user-name="${comment.fullName}" data-post-id="${comment.postId}" style="font-size: 0.78rem;">
                                             <i class="bi bi-reply-fill me-1"></i>Trả lời
                                         </button>
@@ -687,15 +872,40 @@
                 }
             });
 
-            // Nhận cập nhật lượt thích bình luận qua SignalR
-            connection.on("UpdateCommentLikes", function (commentId, postId, likeCount) {
+            // Nhận cập nhật lượt thích / thả cảm xúc bình luận qua SignalR
+            connection.on("UpdateCommentLikes", function (commentId, postId, totalCount, topReactions) {
                 const commentItem = $(`#commentItem-${commentId}`);
                 if (commentItem.length > 0) {
-                    const badge = commentItem.find(".comment-like-count").first();
-                    if (likeCount > 0) {
-                        badge.text(`❤️ ${likeCount}`).removeClass("d-none");
-                    } else {
-                        badge.addClass("d-none");
+                    const countSpan = commentItem.find(".comment-like-count").first();
+                    if (countSpan.length > 0) {
+                        const emojiContainer = countSpan.find(".comment-emojis-container");
+                        emojiContainer.empty();
+                        
+                        const emojiMap = {
+                            "Like": "👍",
+                            "Love": "❤️",
+                            "Haha": "😆",
+                            "Wow": "😮",
+                            "Sad": "😢",
+                            "Angry": "😡"
+                        };
+                        
+                        if (topReactions && topReactions.length > 0) {
+                            topReactions.forEach(function (r) {
+                                emojiContainer.append(`<span>${emojiMap[r] || "👍"}</span>`);
+                            });
+                        } else {
+                            emojiContainer.append(`<span>👍</span>`);
+                        }
+                        
+                        countSpan.find(".comment-count-num").text(totalCount);
+                        
+                        if (totalCount > 0) {
+                            countSpan.removeClass("d-none");
+                        } else {
+                            countSpan.addClass("d-none");
+                            updateCommentLikeButtonUI(commentId, false, null);
+                        }
                     }
                 }
             });
@@ -736,28 +946,142 @@
                 });
             });
 
-            // Thả cảm xúc / Thích bình luận
-            $(document).on("click", ".btn-toggle-comment-like", function () {
-                const btn = $(this);
-                const commentId = btn.data("comment-id");
-                
-                $.post("/Post/ToggleCommentLike", { commentId: commentId }, function (res) {
+            // Gửi cảm xúc bình luận lên server
+            function sendCommentReaction(commentId, reactionType) {
+                $.post("/Post/ToggleCommentLike", { commentId: commentId, reactionType: reactionType }, function (res) {
                     if (res.success) {
-                        btn.toggleClass("text-primary fw-bold text-muted");
-                        const icon = btn.find("i");
-                        if (res.isLiked) {
-                            icon.removeClass("bi-hand-thumbs-up").addClass("bi-hand-thumbs-up-fill");
-                        } else {
-                            icon.removeClass("bi-hand-thumbs-up-fill").addClass("bi-hand-thumbs-up");
-                        }
-                        const badge = btn.find(".comment-like-count");
-                        if (res.likeCount > 0) {
-                            badge.text(`❤️ ${res.likeCount}`).removeClass("d-none");
-                        } else {
-                            badge.addClass("d-none");
-                        }
+                        updateCommentLikeButtonUI(commentId, res.isLiked, res.reactionType);
                     } else {
                         alert(res.message);
+                    }
+                });
+            }
+
+            // Cập nhật UI nút Thích của Bình luận
+            function updateCommentLikeButtonUI(commentId, isLiked, reactionType) {
+                const btn = $(`.btn-toggle-comment-like[data-comment-id="${commentId}"]`);
+                if (btn.length === 0) return;
+                
+                btn.removeClass("text-muted text-primary text-danger text-warning fw-bold");
+                
+                if (isLiked) {
+                    btn.attr("data-current-reaction", reactionType);
+                    
+                    let btnClass = "text-muted";
+                    let btnIcon = "bi-hand-thumbs-up";
+                    let btnText = "Thích";
+                    
+                    switch (reactionType) {
+                        case "Like":
+                            btnClass = "text-primary fw-bold";
+                            btnIcon = "bi-hand-thumbs-up-fill";
+                            btnText = "Thích";
+                            break;
+                        case "Love":
+                            btnClass = "text-danger fw-bold";
+                            btnIcon = "bi-heart-fill";
+                            btnText = "Yêu thích";
+                            break;
+                        case "Haha":
+                            btnClass = "text-warning fw-bold";
+                            btnIcon = "bi-emoji-laughing-fill";
+                            btnText = "Haha";
+                            break;
+                        case "Wow":
+                            btnClass = "text-warning fw-bold";
+                            btnIcon = "bi-emoji-surprise-fill";
+                            btnText = "Wow";
+                            break;
+                        case "Sad":
+                            btnClass = "text-warning fw-bold";
+                            btnIcon = "bi-emoji-frown-fill";
+                            btnText = "Buồn";
+                            break;
+                        case "Angry":
+                            btnClass = "text-danger fw-bold";
+                            btnIcon = "bi-emoji-angry-fill";
+                            btnText = "Phẫn nộ";
+                            break;
+                    }
+                    
+                    btn.addClass(btnClass);
+                    btn.find("i").attr("class", `bi ${btnIcon} me-1`);
+                    btn.find("span").text(btnText);
+                } else {
+                    btn.attr("data-current-reaction", "");
+                    btn.addClass("text-muted");
+                    btn.find("i").attr("class", "bi bi-hand-thumbs-up me-1");
+                    btn.find("span").text("Thích");
+                }
+            }
+
+            // Rê chuột hiển thị Flyout Emojis cho Bình luận
+            $(document).on("mouseenter", ".comment-reaction-container", function () {
+                $(this).find(".comment-reactions-flyout").removeClass("d-none");
+            }).on("mouseleave", ".comment-reaction-container", function () {
+                $(this).find(".comment-reactions-flyout").addClass("d-none");
+            });
+
+            // Click trực tiếp nút Thích bình luận (Toggle mặc định)
+            $(document).on("click", ".btn-toggle-comment-like", function () {
+                const commentId = $(this).data("comment-id");
+                const currentReaction = $(this).attr("data-current-reaction");
+                const reactionToToggle = currentReaction ? currentReaction : "Like";
+                
+                sendCommentReaction(commentId, reactionToToggle);
+            });
+
+            // Click chọn cảm xúc cụ thể cho Bình luận
+            $(document).on("click", ".comment-reaction-emoji-item", function (e) {
+                e.stopPropagation();
+                const commentId = $(this).data("comment-id");
+                const reaction = $(this).data("reaction");
+                
+                sendCommentReaction(commentId, reaction);
+                $(this).closest(".comment-reactions-flyout").addClass("d-none");
+            });
+
+            // Bấm xem ai đã thả cảm xúc cho Bình luận
+            $(document).on("click", ".btn-view-comment-reactions", function () {
+                const commentId = $(this).data("comment-id");
+                
+                $("#commentReactionsModalBody").html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-muted"></span></div>');
+                $("#commentReactionsDetailModal").modal("show");
+                
+                $.get("/Post/GetCommentReactions", { commentId: commentId }, function (res) {
+                    if (res.success) {
+                        $("#commentReactionsModalBody").empty();
+                        
+                        if (res.reactions.length === 0) {
+                            $("#commentReactionsModalBody").html('<div class="text-center text-muted small py-3">Chưa có ai bày tỏ cảm xúc.</div>');
+                            return;
+                        }
+                        
+                        const emojiMap = {
+                            "Like": "👍",
+                            "Love": "❤️",
+                            "Haha": "😆",
+                            "Wow": "😮",
+                            "Sad": "😢",
+                            "Angry": "😡"
+                        };
+                        
+                        res.reactions.forEach(function (item) {
+                            const emoji = emojiMap[item.reactionType] || "👍";
+                            const rowHtml = `
+                                <div class="d-flex align-items-center justify-content-between py-2 border-bottom border-light">
+                                    <div class="d-flex align-items-center">
+                                        <img src="${item.avatarUrl}" alt="${item.fullName}" class="avatar avatar-sm me-2.5" />
+                                        <div>
+                                            <h6 class="fw-semibold mb-0 small text-truncate" style="max-width: 180px;">${item.fullName}</h6>
+                                            <span class="text-muted small" style="font-size: 0.7rem;">@@${item.username}</span>
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 1.2rem;">${emoji}</span>
+                                </div>
+                            `;
+                            $("#commentReactionsModalBody").append(rowHtml);
+                        });
                     }
                 });
             });

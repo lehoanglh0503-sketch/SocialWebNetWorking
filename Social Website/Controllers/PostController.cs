@@ -185,7 +185,7 @@ namespace Social_Website.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ToggleCommentLike(long commentId)
+        public async Task<IActionResult> ToggleCommentLike(long commentId, string reactionType = "Like")
         {
             var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null)
@@ -204,11 +204,22 @@ namespace Social_Website.Controllers
 
             var existingLike = comment.Likes.FirstOrDefault(l => l.UserId == currentUser.UserId);
             bool isLiked = false;
+            string? currentReaction = null;
 
             if (existingLike != null)
             {
-                _context.CommentLikes.Remove(existingLike);
-                isLiked = false;
+                if (existingLike.ReactionType == reactionType)
+                {
+                    _context.CommentLikes.Remove(existingLike);
+                    isLiked = false;
+                }
+                else
+                {
+                    existingLike.ReactionType = reactionType;
+                    _context.CommentLikes.Update(existingLike);
+                    isLiked = true;
+                    currentReaction = reactionType;
+                }
             }
             else
             {
@@ -216,26 +227,55 @@ namespace Social_Website.Controllers
                 {
                     CommentId = commentId,
                     UserId = currentUser.UserId,
-                    ReactionType = "Like"
+                    ReactionType = reactionType
                 };
                 _context.CommentLikes.Add(like);
                 isLiked = true;
+                currentReaction = reactionType;
             }
 
             await _context.SaveChangesAsync();
 
-            int likeCount = await _context.CommentLikes.CountAsync(l => l.CommentId == commentId);
+            var commentLikes = await _context.CommentLikes.Where(l => l.CommentId == commentId).ToListAsync();
+            int totalCount = commentLikes.Count;
+            var topReactions = commentLikes
+                .GroupBy(l => l.ReactionType)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .Take(3)
+                .ToList();
 
             // Broadcast cập nhật lượt thích bình luận qua SignalR
-            await _hubContext.Clients.All.SendAsync("UpdateCommentLikes", commentId, comment.PostId, likeCount);
+            await _hubContext.Clients.All.SendAsync("UpdateCommentLikes", commentId, comment.PostId, totalCount, topReactions);
 
             return Json(new
             {
                 success = true,
                 commentId = commentId,
                 isLiked = isLiked,
-                likeCount = likeCount
+                reactionType = currentReaction,
+                likeCount = totalCount,
+                topReactions = topReactions
             });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCommentReactions(long commentId)
+        {
+            var reactions = await _context.CommentLikes
+                .Where(l => l.CommentId == commentId)
+                .Include(l => l.User)
+                .Select(l => new
+                {
+                    userId = l.UserId,
+                    fullName = l.User!.FullName,
+                    avatarUrl = l.User.AvatarUrl,
+                    username = l.User.Username,
+                    reactionType = l.ReactionType
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, reactions = reactions });
         }
 
         [HttpPost]
