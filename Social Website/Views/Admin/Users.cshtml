@@ -190,12 +190,24 @@
                     
                     <div class="mb-3">
                         <label for="changePasswordNewInput" class="form-label text-muted small fw-semibold">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
-                        <input type="password" id="changePasswordNewInput" class="form-control form-control-modern px-3 py-2.5" placeholder="Nhập mật khẩu mới..." required minlength="6" style="border-radius: 12px;" />
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0" style="border-top-left-radius: 12px; border-bottom-left-radius: 12px;"><i class="bi bi-lock text-muted"></i></span>
+                            <input type="password" id="changePasswordNewInput" class="form-control form-control-modern border-start-0 border-end-0 px-3 py-2.5" placeholder="Nhập mật khẩu mới..." required minlength="6" />
+                            <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#changePasswordNewInput" title="Hiện mật khẩu" style="border-top-right-radius: 12px; border-bottom-right-radius: 12px;">
+                                <i class="bi bi-eye-fill"></i>
+                            </span>
+                        </div>
                     </div>
                     
                     <div class="mb-0">
                         <label for="changePasswordConfirmInput" class="form-label text-muted small fw-semibold">Xác nhận mật khẩu mới</label>
-                        <input type="password" id="changePasswordConfirmInput" class="form-control form-control-modern px-3 py-2.5" placeholder="Nhập lại mật khẩu mới..." required minlength="6" style="border-radius: 12px;" />
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0" style="border-top-left-radius: 12px; border-bottom-left-radius: 12px;"><i class="bi bi-lock-check text-muted"></i></span>
+                            <input type="password" id="changePasswordConfirmInput" class="form-control form-control-modern border-start-0 border-end-0 px-3 py-2.5" placeholder="Nhập lại mật khẩu mới..." required minlength="6" />
+                            <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#changePasswordConfirmInput" title="Hiện mật khẩu" style="border-top-right-radius: 12px; border-bottom-right-radius: 12px;">
+                                <i class="bi bi-eye-fill"></i>
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top-0 pt-0">

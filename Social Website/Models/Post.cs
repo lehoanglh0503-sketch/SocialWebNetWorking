@@ -6,9 +6,10 @@ namespace Social_Website.Models
     {
         public long PostId { get; set; }
         
-        [Required(ErrorMessage = "Nội dung bài đăng không được để trống")]
         [StringLength(1000, ErrorMessage = "Nội dung bài đăng không quá 1000 ký tự")]
-        public string Content { get; set; } = string.Empty;
+        public string? Content { get; set; }
+        
+        public string? ImageUrl { get; set; }
         
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         

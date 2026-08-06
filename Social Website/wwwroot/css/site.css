@@ -170,6 +170,20 @@ body {
     box-shadow: 0 0 0 3px var(--primary-light);
 }
 
+.toggle-password-btn {
+    cursor: pointer;
+    background-color: #ffffff !important;
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.toggle-password-btn:hover {
+    color: var(--primary-color) !important;
+    background-color: #f8fafc !important;
+}
+
 /* Custom list group */
 .list-group-modern .list-group-item {
     border: none;

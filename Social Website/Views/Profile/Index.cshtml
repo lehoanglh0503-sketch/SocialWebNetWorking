@@ -190,17 +190,35 @@
             <form id="passwordForm">
                 <div class="mb-3">
                     <label for="currentPassword" class="form-label fw-semibold text-muted small">Mật khẩu hiện tại</label>
-                    <input type="password" id="currentPassword" name="currentPassword" class="form-control form-control-modern" placeholder="••••••••" required />
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-lock text-muted"></i></span>
+                        <input type="password" id="currentPassword" name="currentPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required />
+                        <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#currentPassword" title="Hiện mật khẩu">
+                            <i class="bi bi-eye-fill"></i>
+                        </span>
+                    </div>
                 </div>
                 
                 <div class="row mb-4">
                     <div class="col-md-6 mb-3 mb-md-0">
                         <label for="newPassword" class="form-label fw-semibold text-muted small">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
-                        <input type="password" id="newPassword" name="newPassword" class="form-control form-control-modern" placeholder="••••••••" required minlength="6" />
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-key text-muted"></i></span>
+                            <input type="password" id="newPassword" name="newPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required minlength="6" />
+                            <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#newPassword" title="Hiện mật khẩu">
+                                <i class="bi bi-eye-fill"></i>
+                            </span>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <label for="confirmPassword" class="form-label fw-semibold text-muted small">Xác nhận mật khẩu mới</label>
-                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control form-control-modern" placeholder="••••••••" required />
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-shield-check text-muted"></i></span>
+                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required />
+                            <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#confirmPassword" title="Hiện mật khẩu">
+                                <i class="bi bi-eye-fill"></i>
+                            </span>
+                        </div>
                     </div>
                 </div>
                 

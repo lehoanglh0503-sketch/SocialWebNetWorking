@@ -92,7 +92,7 @@
                     <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-sm me-3" />
                     <div class="w-100">
                         <form id="createPostForm">
-                            <textarea id="postContent" class="form-control post-input w-100" rows="3" placeholder="Hôm nay bạn thế nào, @(currentUser?.FullName)?..." required></textarea>
+                            <textarea id="postContent" class="form-control post-input w-100" rows="3" placeholder="Hôm nay bạn thế nào, @(currentUser?.FullName)?..."></textarea>
                             
                             <!-- Cảnh báo từ ngữ bạo lực -->
                             <div id="postValidationAlert" class="alert alert-danger d-none mt-2 mb-0 animate-fade-in-up" role="alert" style="border-radius: 12px; font-size: 0.85rem;">
@@ -100,10 +100,19 @@
                                 <span id="postValidationMessage"></span>
                             </div>
 
+                            <!-- Xem trước ảnh được chọn -->
+                            <div id="postImagePreviewWrapper" class="position-relative d-none mt-2 mb-2">
+                                <img id="postImagePreview" src="#" alt="Preview" class="rounded img-fluid" style="max-height: 250px; width: auto; object-fit: cover;" />
+                                <button type="button" id="btnRemovePostImage" class="btn btn-sm btn-dark position-absolute top-0 end-0 m-2 rounded-circle" style="width: 28px; height: 28px; padding: 0; line-height: 1;" title="Xóa ảnh">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+
+                            <input type="file" id="postImageInput" accept="image/*" class="d-none" />
+
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <div class="d-flex text-muted gap-3 small">
-                                    <span class="cursor-pointer hover-primary"><i class="bi bi-image text-success me-1"></i>Ảnh</span>
-                                    <span class="cursor-pointer hover-primary"><i class="bi bi-emoji-smile text-warning me-1"></i>Cảm xúc</span>
+                                    <span class="cursor-pointer hover-primary" onclick="$('#postImageInput').click();"><i class="bi bi-image text-success me-1"></i>Ảnh</span>
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-sm px-4">Đăng bài</button>
                             </div>
@@ -148,7 +157,16 @@
                         </div>
 
                         <!-- Post content -->
-                        <p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">@post.Content</p>
+                        @if (!string.IsNullOrEmpty(post.Content))
+                        {
+                            <p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">@post.Content</p>
+                        }
+                        @if (!string.IsNullOrEmpty(post.ImageUrl))
+                        {
+                            <div class="post-image-container mb-3 text-center">
+                                <img src="@post.ImageUrl" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm" style="max-height: 500px; width: auto; object-fit: cover;" />
+                            </div>
+                        }
 
                         <!-- Post Actions summary -->
                         <div class="d-flex justify-content-between text-muted small border-top border-bottom py-2 my-2">
@@ -247,12 +265,20 @@
                             <div class="comment-list d-flex flex-column gap-2 mb-3" id="commentList-@post.PostId">
                                 @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
                                 {
-                                    <div class="d-flex">
+                                    <div class="d-flex position-relative mb-2" id="commentItem-@comment.CommentId">
                                         <img src="@comment.User?.AvatarUrl" alt="@comment.User?.FullName" class="avatar avatar-sm me-2 mt-1" />
-                                        <div class="comment-box w-100">
-                                            <div class="d-flex justify-content-between">
+                                        <div class="comment-box w-100 position-relative">
+                                            <div class="d-flex justify-content-between align-items-center">
                                                 <span class="fw-bold">@comment.User?.FullName</span>
-                                                <span class="text-muted small">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="text-muted small">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                    @if (comment.UserId == currentUser?.UserId || post.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
+                                                    {
+                                                        <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="@comment.CommentId" title="Xóa bình luận" style="font-size: 0.8rem; line-height: 1;">
+                                                            <i class="bi bi-trash3"></i>
+                                                        </button>
+                                                    }
+                                                </div>
                                             </div>
                                             <p class="mb-0 mt-1">@comment.Content</p>
                                         </div>
@@ -268,6 +294,10 @@
                                         <input type="text" class="form-control comment-input" placeholder="Viết bình luận..." required autocomplete="off" />
                                         <button type="submit" class="comment-send-btn"><i class="bi bi-send-fill"></i></button>
                                     </div>
+                                </div>
+                                <div class="comment-validation-alert alert alert-danger d-none mt-2 mb-0 py-1 px-3 animate-fade-in-up" role="alert" style="border-radius: 8px; font-size: 0.8rem;">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                    <span class="comment-validation-message"></span>
                                 </div>
                             </form>
                         </div>
@@ -438,6 +468,9 @@
                     </div>
                 `;
 
+                const contentHtml = post.content ? `<p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">${post.content}</p>` : '';
+                const imageHtml = post.imageUrl ? `<div class="post-image-container mb-3 text-center"><img src="${post.imageUrl}" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm" style="max-height: 500px; width: auto; object-fit: cover;" /></div>` : '';
+
                 const postHtml = `
                     <div class="card card-hover mb-4 animate-fade-in-up" id="postCard-${post.postId}">
                         <div class="card-body p-4">
@@ -451,7 +484,8 @@
                                 </div>
                                 ${dropdownHtml}
                             </div>
-                            <p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">${post.content}</p>
+                            ${contentHtml}
+                            ${imageHtml}
                             
                             <div class="d-flex justify-content-between text-muted small border-top border-bottom py-2 my-2">
                                 <span id="likeCount-${post.postId}" class="cursor-pointer btn-view-reactions hover-underline" data-post-id="${post.postId}">
@@ -500,13 +534,26 @@
 
             // Nhận bình luận mới
             connection.on("ReceiveNewComment", function (comment) {
+                const currentUserId = "@currentUser?.UserId";
+                const isCurrentUserAdmin = @(currentUser != null && currentUser.IsAdmin ? "true" : "false");
+                const canDelete = (comment.userId == currentUserId || comment.postAuthorUserId == currentUserId || isCurrentUserAdmin);
+
+                const deleteBtnHtml = canDelete ? `
+                    <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="${comment.commentId}" title="Xóa bình luận" style="font-size: 0.8rem; line-height: 1;">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                ` : '';
+
                 const commentHtml = `
-                    <div class="d-flex">
+                    <div class="d-flex position-relative mb-2" id="commentItem-${comment.commentId}">
                         <img src="${comment.avatarUrl}" alt="${comment.fullName}" class="avatar avatar-sm me-2 mt-1" />
-                        <div class="comment-box w-100">
-                            <div class="d-flex justify-content-between">
+                        <div class="comment-box w-100 position-relative">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <span class="fw-bold">${comment.fullName}</span>
-                                <span class="text-muted small">${comment.createdAt}</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted small">${comment.createdAt}</span>
+                                    ${deleteBtnHtml}
+                                </div>
                             </div>
                             <p class="mb-0 mt-1">${comment.content}</p>
                         </div>
@@ -519,7 +566,22 @@
                 const match = $count.text().match(/\d+/);
                 if (match) {
                     const currentCount = parseInt(match[0]);
-                    $count.html(`<i class="bi-chat-dots me-1"></i> ${currentCount + 1} bình luận`);
+                    $count.html(`<i class="bi bi-chat-dots me-1"></i> ${currentCount + 1} bình luận`);
+                }
+            });
+
+            // Nhận sự kiện xóa bình luận qua SignalR
+            connection.on("ReceiveDeletedComment", function (commentId, postId) {
+                $(`#commentItem-${commentId}`).fadeOut(300, function () {
+                    $(this).remove();
+                });
+
+                const $count = $(`#commentCount-${postId}`);
+                const match = $count.text().match(/\d+/);
+                if (match) {
+                    const currentCount = parseInt(match[0]);
+                    const newCount = Math.max(0, currentCount - 1);
+                    $count.html(`<i class="bi bi-chat-dots me-1"></i> ${newCount} bình luận`);
                 }
             });
 
@@ -560,27 +622,73 @@
                 $("#postValidationAlert").addClass("d-none");
             });
 
+            // Xem trước ảnh khi chọn từ máy
+            $("#postImageInput").on("change", function () {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        $("#postImagePreview").attr("src", e.target.result);
+                        $("#postImagePreviewWrapper").removeClass("d-none");
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Xóa ảnh xem trước
+            $("#btnRemovePostImage").on("click", function () {
+                $("#postImageInput").val("");
+                $("#postImagePreview").attr("src", "#");
+                $("#postImagePreviewWrapper").addClass("d-none");
+            });
+
             // 2. Gửi bài đăng mới bằng AJAX
             $("#createPostForm").submit(function (e) {
                 e.preventDefault();
-                const content = $("#postContent").val();
-                
-                $.post("/Post/Create", { content: content }, function (res) {
-                    if (res.success) {
-                        $("#postContent").val("");
-                        $("#postValidationAlert").addClass("d-none");
-                    } else {
-                        if (res.isViolent) {
-                            $("#postValidationMessage").text(res.message);
-                            $("#postValidationAlert").removeClass("d-none");
+                const content = $("#postContent").val().trim();
+                const fileInput = document.getElementById("postImageInput");
+                const file = fileInput ? fileInput.files[0] : null;
+
+                if (!content && !file) {
+                    alert("Vui lòng nhập nội dung hoặc chọn ảnh để đăng bài.");
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("content", content);
+                if (file) {
+                    formData.append("image", file);
+                }
+
+                $.ajax({
+                    url: "/Post/Create",
+                    type: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (res) {
+                        if (res.success) {
+                            $("#postContent").val("");
+                            $("#postImageInput").val("");
+                            $("#postImagePreview").attr("src", "#");
+                            $("#postImagePreviewWrapper").addClass("d-none");
+                            $("#postValidationAlert").addClass("d-none");
                         } else {
-                            alert(res.message);
+                            if (res.isViolent) {
+                                $("#postValidationMessage").text(res.message);
+                                $("#postValidationAlert").removeClass("d-none");
+                            } else {
+                                alert(res.message);
+                            }
                         }
+                    },
+                    error: function () {
+                        alert("Có lỗi xảy ra khi gửi bài viết.");
                     }
                 });
             });
 
-            // 3. Gửi bình luận mới bằng AJAX
+            // 3. Gửi bình luận mới bằng AJAX (lọc từ ngữ bạo lực)
             $(document).on("submit", ".create-comment-form", function (e) {
                 e.preventDefault();
                 const postId = $(this).data("post-id");

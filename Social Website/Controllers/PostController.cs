@@ -44,7 +44,7 @@ namespace Social_Website.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string content)
+        public async Task<IActionResult> Create(string? content, IFormFile? image)
         {
             var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null)
@@ -52,26 +52,53 @@ namespace Social_Website.Controllers
                 return Json(new { success = false, message = "Vui lòng đăng nhập" });
             }
 
-            if (string.IsNullOrEmpty(content) || content.Trim().Length == 0)
+            bool hasContent = !string.IsNullOrWhiteSpace(content);
+            bool hasImage = image != null && image.Length > 0;
+
+            if (!hasContent && !hasImage)
             {
-                return Json(new { success = false, message = "Nội dung bài viết không được rỗng" });
+                return Json(new { success = false, message = "Vui lòng nhập nội dung hoặc chọn ảnh để đăng bài" });
             }
 
-            // Kiểm tra từ ngữ bạo lực từ Database
-            var (containsViolent, detected) = await ContainsViolentWordsAsync(content);
-            if (containsViolent)
+            string? imageUrl = null;
+
+            if (hasContent)
             {
-                return Json(new
+                // Kiểm tra từ ngữ bạo lực từ Database
+                var (containsViolent, detected) = await ContainsViolentWordsAsync(content!);
+                if (containsViolent)
                 {
-                    success = false,
-                    isViolent = true,
-                    message = $"Bài viết của bạn chứa từ ngữ không phù hợp: \"{string.Join("\", \"", detected)}\". Vui lòng sửa lại."
-                });
+                    return Json(new
+                    {
+                        success = false,
+                        isViolent = true,
+                        message = $"Bài viết của bạn chứa từ ngữ không phù hợp: \"{string.Join("\", \"", detected)}\". Vui lòng sửa lại."
+                    });
+                }
+            }
+
+            if (hasImage)
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "posts");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(image!.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await image.CopyToAsync(fileStream);
+                }
+
+                imageUrl = "/uploads/posts/" + uniqueFileName;
             }
 
             var post = new Post
             {
-                Content = content.Trim(),
+                Content = hasContent ? content!.Trim() : string.Empty,
+                ImageUrl = imageUrl,
                 CreatedAt = DateTime.Now,
                 UserId = currentUser.UserId
             };
@@ -84,6 +111,7 @@ namespace Social_Website.Controllers
             {
                 postId = post.PostId,
                 content = post.Content,
+                imageUrl = post.ImageUrl,
                 createdAt = post.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
                 fullName = currentUser.FullName,
                 avatarUrl = currentUser.AvatarUrl,
@@ -114,6 +142,18 @@ namespace Social_Website.Controllers
                 return Json(new { success = false, message = "Không tìm thấy bài viết" });
             }
 
+            // Kiểm tra từ ngữ bạo lực từ Database cho bình luận
+            var (containsViolent, detected) = await ContainsViolentWordsAsync(content);
+            if (containsViolent)
+            {
+                return Json(new
+                {
+                    success = false,
+                    isViolent = true,
+                    message = $"Bình luận của bạn chứa từ ngữ không phù hợp: \"{string.Join("\", \"", detected)}\". Vui lòng sửa lại."
+                });
+            }
+
             var comment = new Comment
             {
                 Content = content.Trim(),
@@ -134,7 +174,9 @@ namespace Social_Website.Controllers
                 createdAt = comment.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
                 fullName = currentUser.FullName,
                 avatarUrl = currentUser.AvatarUrl,
-                username = currentUser.Username
+                username = currentUser.Username,
+                userId = currentUser.UserId,
+                postAuthorUserId = post.UserId
             });
 
             return Json(new { success = true });
@@ -258,6 +300,37 @@ namespace Social_Website.Controllers
             await _hubContext.Clients.All.SendAsync("ReceiveDeletedPost", id);
 
             return Json(new { success = true, message = "Đã xóa bài viết thành công!" });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteComment(long id)
+        {
+            var currentUser = this.GetCurrentUser(_context);
+            if (currentUser == null)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            }
+
+            var comment = await _context.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.CommentId == id);
+            if (comment == null)
+            {
+                return Json(new { success = false, message = "Bình luận không tồn tại hoặc đã bị xóa" });
+            }
+
+            // Quyền xóa bình luận: Tác giả bình luận, Tác giả bài viết, hoặc Admin
+            if (comment.UserId != currentUser.UserId && comment.Post?.UserId != currentUser.UserId && !currentUser.IsAdmin)
+            {
+                return Json(new { success = false, message = "Bạn không có quyền xóa bình luận này" });
+            }
+
+            long postId = comment.PostId;
+            _context.Comments.Remove(comment);
+            await _context.SaveChangesAsync();
+
+            // Broadcast sự kiện xóa bình luận qua SignalR
+            await _hubContext.Clients.All.SendAsync("ReceiveDeletedComment", id, postId);
+
+            return Json(new { success = true, message = "Đã xóa bình luận thành công" });
         }
     }
 }
