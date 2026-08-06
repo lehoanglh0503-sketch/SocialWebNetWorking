@@ -14,6 +14,7 @@ namespace Social_Website.Models
         public DbSet<PostReport> PostReports => Set<PostReport>();
         public DbSet<Message> Messages => Set<Message>();
         public DbSet<BannedWord> BannedWords => Set<BannedWord>();
+        public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -47,6 +48,24 @@ namespace Social_Website.Models
                 .HasOne(c => c.User)
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(c => c.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CommentLike>()
+                .HasOne(cl => cl.Comment)
+                .WithMany(c => c.Likes)
+                .HasForeignKey(cl => cl.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommentLike>()
+                .HasOne(cl => cl.User)
+                .WithMany()
+                .HasForeignKey(cl => cl.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<PostLike>()

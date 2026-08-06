@@ -17,5 +17,13 @@ namespace Social_Website.Models
         
         public long UserId { get; set; }
         public User? User { get; set; }
+
+        // Phản hồi / Trả lời bình luận
+        public long? ParentCommentId { get; set; }
+        public Comment? ParentComment { get; set; }
+        public List<Comment> Replies { get; set; } = new();
+
+        // Tương tác thả cảm xúc / Thích bình luận
+        public List<CommentLike> Likes { get; set; } = new();
     }
 }

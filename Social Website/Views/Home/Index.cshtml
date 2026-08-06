@@ -263,24 +263,89 @@
                         <!-- Comments Section -->
                         <div class="comment-section" id="commentSection-@post.PostId">
                             <div class="comment-list d-flex flex-column gap-2 mb-3" id="commentList-@post.PostId">
-                                @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                                @foreach (var comment in post.Comments.Where(c => c.ParentCommentId == null).OrderBy(c => c.CreatedAt))
                                 {
-                                    <div class="d-flex position-relative mb-2" id="commentItem-@comment.CommentId">
-                                        <img src="@comment.User?.AvatarUrl" alt="@comment.User?.FullName" class="avatar avatar-sm me-2 mt-1" />
-                                        <div class="comment-box w-100 position-relative">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="fw-bold">@comment.User?.FullName</span>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span class="text-muted small">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                                                    @if (comment.UserId == currentUser?.UserId || post.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
-                                                    {
-                                                        <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="@comment.CommentId" title="Xóa bình luận" style="font-size: 0.8rem; line-height: 1;">
-                                                            <i class="bi bi-trash3"></i>
-                                                        </button>
-                                                    }
+                                    bool isCommentLiked = comment.Likes.Any(l => l.UserId == currentUser?.UserId);
+                                    int commentLikeCount = comment.Likes.Count;
+
+                                    <div class="d-flex flex-column mb-2" id="commentItem-@comment.CommentId">
+                                        <!-- Bình luận chính -->
+                                        <div class="d-flex position-relative">
+                                            <img src="@comment.User?.AvatarUrl" alt="@comment.User?.FullName" class="avatar avatar-sm me-2 mt-1" />
+                                            <div class="comment-box w-100 position-relative">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="fw-bold">@comment.User?.FullName</span>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="text-muted small">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                        @if (comment.UserId == currentUser?.UserId || post.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
+                                                        {
+                                                            <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="@comment.CommentId" title="Xóa bình luận" style="font-size: 0.8rem; line-height: 1;">
+                                                                <i class="bi bi-trash3"></i>
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <p class="mb-1 mt-1">@comment.Content</p>
+
+                                                <!-- Thanh nút Thích & Trả lời bình luận -->
+                                                <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1">
+                                                    <button type="button" class="btn btn-link p-0 text-decoration-none small btn-toggle-comment-like @(isCommentLiked ? "text-primary fw-bold" : "text-muted")" data-comment-id="@comment.CommentId" style="font-size: 0.78rem;">
+                                                        <i class="bi @(isCommentLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up") me-1"></i><span>Thích</span>
+                                                        <span class="comment-like-count badge rounded-pill bg-light text-dark ms-1 @(commentLikeCount > 0 ? "" : "d-none")">❤️ @commentLikeCount</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="@comment.CommentId" data-user-name="@comment.User?.FullName" data-post-id="@post.PostId" style="font-size: 0.78rem;">
+                                                        <i class="bi bi-reply-fill me-1"></i>Trả lời
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <p class="mb-0 mt-1">@comment.Content</p>
+                                        </div>
+
+                                        <!-- Danh sách phản hồi (Replies) dưới bình luận -->
+                                        <div class="reply-list ms-4 ps-3 border-start mt-2 d-flex flex-column gap-2" id="replyList-@comment.CommentId">
+                                            @foreach (var reply in comment.Replies.OrderBy(r => r.CreatedAt))
+                                            {
+                                                bool isReplyLiked = reply.Likes.Any(l => l.UserId == currentUser?.UserId);
+                                                int replyLikeCount = reply.Likes.Count;
+
+                                                <div class="d-flex position-relative" id="commentItem-@reply.CommentId">
+                                                    <img src="@reply.User?.AvatarUrl" alt="@reply.User?.FullName" class="avatar avatar-xs me-2 mt-1" style="width: 28px; height: 28px;" />
+                                                    <div class="comment-box w-100 position-relative bg-light p-2 rounded">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="fw-bold small">@reply.User?.FullName</span>
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <span class="text-muted" style="font-size: 0.72rem;">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                                @if (reply.UserId == currentUser?.UserId || post.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
+                                                                {
+                                                                    <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="@reply.CommentId" title="Xóa phản hồi" style="font-size: 0.75rem; line-height: 1;">
+                                                                        <i class="bi bi-trash3"></i>
+                                                                    </button>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                        <p class="mb-1 mt-1 small">@reply.Content</p>
+                                                        <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1">
+                                                            <button type="button" class="btn btn-link p-0 text-decoration-none small btn-toggle-comment-like @(isReplyLiked ? "text-primary fw-bold" : "text-muted")" data-comment-id="@reply.CommentId" style="font-size: 0.75rem;">
+                                                                <i class="bi @(isReplyLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up") me-1"></i><span>Thích</span>
+                                                                <span class="comment-like-count badge rounded-pill bg-white text-dark ms-1 @(replyLikeCount > 0 ? "" : "d-none")">❤️ @replyLikeCount</span>
+                                                            </button>
+                                                            <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="@comment.CommentId" data-user-name="@reply.User?.FullName" data-post-id="@post.PostId" style="font-size: 0.75rem;">
+                                                                <i class="bi bi-reply-fill me-1"></i>Trả lời
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Khung nhập phản hồi ẩn (Reply form) -->
+                                        <div class="reply-input-container ms-4 ps-3 border-start mt-2 d-none" id="replyFormContainer-@comment.CommentId">
+                                            <form class="create-comment-form d-flex align-items-center gap-2" data-post-id="@post.PostId" data-parent-id="@comment.CommentId">
+                                                <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-xs me-1" style="width: 28px; height: 28px;" />
+                                                <div class="input-group input-group-sm w-100">
+                                                    <input type="text" class="form-control comment-input reply-input" placeholder="Trả lời bình luận..." required autocomplete="off" />
+                                                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-send-fill"></i></button>
+                                                </div>
+                                            </form>
                                         </div>
                                     </div>
                                 }
@@ -437,6 +502,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.25/signalr.min.js"></script>
     <script>
         $(document).ready(function () {
+            const currentAvatarUrl = "@currentUser?.AvatarUrl";
+            const currentFullName = "@currentUser?.FullName";
+
             // 1. Kết nối tới SignalR SocialHub
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/socialHub")
@@ -532,7 +600,7 @@
                 $("#feedContainer").prepend(postHtml);
             });
 
-            // Nhận bình luận mới
+            // Nhận bình luận mới (hỗ trợ cả bình luận gốc và phản hồi bình luận)
             connection.on("ReceiveNewComment", function (comment) {
                 const currentUserId = "@currentUser?.UserId";
                 const isCurrentUserAdmin = @(currentUser != null && currentUser.IsAdmin ? "true" : "false");
@@ -544,22 +612,71 @@
                     </button>
                 ` : '';
 
-                const commentHtml = `
-                    <div class="d-flex position-relative mb-2" id="commentItem-${comment.commentId}">
-                        <img src="${comment.avatarUrl}" alt="${comment.fullName}" class="avatar avatar-sm me-2 mt-1" />
-                        <div class="comment-box w-100 position-relative">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">${comment.fullName}</span>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted small">${comment.createdAt}</span>
-                                    ${deleteBtnHtml}
+                if (comment.parentCommentId) {
+                    const replyHtml = `
+                        <div class="d-flex position-relative animate-fade-in-up" id="commentItem-${comment.commentId}">
+                            <img src="${comment.avatarUrl}" alt="${comment.fullName}" class="avatar avatar-xs me-2 mt-1" style="width: 28px; height: 28px;" />
+                            <div class="comment-box w-100 position-relative bg-light p-2 rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold small">${comment.fullName}</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-muted" style="font-size: 0.72rem;">${comment.createdAt}</span>
+                                        ${deleteBtnHtml}
+                                    </div>
+                                </div>
+                                <p class="mb-1 mt-1 small">${comment.content}</p>
+                                <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1">
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-toggle-comment-like" data-comment-id="${comment.commentId}" style="font-size: 0.75rem;">
+                                        <i class="bi bi-hand-thumbs-up me-1"></i><span>Thích</span>
+                                        <span class="comment-like-count badge rounded-pill bg-white text-dark ms-1 d-none">❤️ 0</span>
+                                    </button>
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="${comment.parentCommentId}" data-user-name="${comment.fullName}" data-post-id="${comment.postId}" style="font-size: 0.75rem;">
+                                        <i class="bi bi-reply-fill me-1"></i>Trả lời
+                                    </button>
                                 </div>
                             </div>
-                            <p class="mb-0 mt-1">${comment.content}</p>
                         </div>
-                    </div>
-                `;
-                $(`#commentList-${comment.postId}`).append(commentHtml);
+                    `;
+                    $(`#replyList-${comment.parentCommentId}`).append(replyHtml);
+                } else {
+                    const commentHtml = `
+                        <div class="d-flex flex-column mb-2 animate-fade-in-up" id="commentItem-${comment.commentId}">
+                            <div class="d-flex position-relative">
+                                <img src="${comment.avatarUrl}" alt="${comment.fullName}" class="avatar avatar-sm me-2 mt-1" />
+                                <div class="comment-box w-100 position-relative">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold">${comment.fullName}</span>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-muted small">${comment.createdAt}</span>
+                                            ${deleteBtnHtml}
+                                        </div>
+                                    </div>
+                                    <p class="mb-1 mt-1">${comment.content}</p>
+                                    <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1">
+                                        <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-toggle-comment-like" data-comment-id="${comment.commentId}" style="font-size: 0.78rem;">
+                                            <i class="bi bi-hand-thumbs-up me-1"></i><span>Thích</span>
+                                            <span class="comment-like-count badge rounded-pill bg-light text-dark ms-1 d-none">❤️ 0</span>
+                                        </button>
+                                        <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="${comment.commentId}" data-user-name="${comment.fullName}" data-post-id="${comment.postId}" style="font-size: 0.78rem;">
+                                            <i class="bi bi-reply-fill me-1"></i>Trả lời
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="reply-list ms-4 ps-3 border-start mt-2 d-flex flex-column gap-2" id="replyList-${comment.commentId}"></div>
+                            <div class="reply-input-container ms-4 ps-3 border-start mt-2 d-none" id="replyFormContainer-${comment.commentId}">
+                                <form class="create-comment-form d-flex align-items-center gap-2" data-post-id="${comment.postId}" data-parent-id="${comment.commentId}">
+                                    <img src="${currentAvatarUrl}" alt="${currentFullName}" class="avatar avatar-xs me-1" style="width: 28px; height: 28px;" />
+                                    <div class="input-group input-group-sm w-100">
+                                        <input type="text" class="form-control comment-input reply-input" placeholder="Trả lời bình luận..." required autocomplete="off" />
+                                        <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-send-fill"></i></button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+                    $(`#commentList-${comment.postId}`).append(commentHtml);
+                }
 
                 // Cập nhật số lượng bình luận
                 const $count = $(`#commentCount-${comment.postId}`);
@@ -567,6 +684,19 @@
                 if (match) {
                     const currentCount = parseInt(match[0]);
                     $count.html(`<i class="bi bi-chat-dots me-1"></i> ${currentCount + 1} bình luận`);
+                }
+            });
+
+            // Nhận cập nhật lượt thích bình luận qua SignalR
+            connection.on("UpdateCommentLikes", function (commentId, postId, likeCount) {
+                const commentItem = $(`#commentItem-${commentId}`);
+                if (commentItem.length > 0) {
+                    const badge = commentItem.find(".comment-like-count").first();
+                    if (likeCount > 0) {
+                        badge.text(`❤️ ${likeCount}`).removeClass("d-none");
+                    } else {
+                        badge.addClass("d-none");
+                    }
                 }
             });
 
@@ -583,6 +713,67 @@
                     const newCount = Math.max(0, currentCount - 1);
                     $count.html(`<i class="bi bi-chat-dots me-1"></i> ${newCount} bình luận`);
                 }
+            });
+
+            // 3. Gửi bình luận hoặc trả lời bình luận bằng AJAX
+            $(document).on("submit", ".create-comment-form", function (e) {
+                e.preventDefault();
+                const form = $(this);
+                const postId = form.data("post-id");
+                const parentId = form.data("parent-id") || null;
+                const $input = form.find(".comment-input");
+                const content = $input.val();
+                
+                $.post("/Post/CreateComment", { postId: postId, content: content, parentCommentId: parentId }, function (res) {
+                    if (res.success) {
+                        $input.val("");
+                        if (parentId) {
+                            $(`#replyFormContainer-${parentId}`).addClass("d-none");
+                        }
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // Thả cảm xúc / Thích bình luận
+            $(document).on("click", ".btn-toggle-comment-like", function () {
+                const btn = $(this);
+                const commentId = btn.data("comment-id");
+                
+                $.post("/Post/ToggleCommentLike", { commentId: commentId }, function (res) {
+                    if (res.success) {
+                        btn.toggleClass("text-primary fw-bold text-muted");
+                        const icon = btn.find("i");
+                        if (res.isLiked) {
+                            icon.removeClass("bi-hand-thumbs-up").addClass("bi-hand-thumbs-up-fill");
+                        } else {
+                            icon.removeClass("bi-hand-thumbs-up-fill").addClass("bi-hand-thumbs-up");
+                        }
+                        const badge = btn.find(".comment-like-count");
+                        if (res.likeCount > 0) {
+                            badge.text(`❤️ ${res.likeCount}`).removeClass("d-none");
+                        } else {
+                            badge.addClass("d-none");
+                        }
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // Bấm 'Trả lời' mở khung nhập phản hồi
+            $(document).on("click", ".btn-reply-comment-trigger", function () {
+                const commentId = $(this).data("comment-id");
+                const userName = $(this).data("user-name");
+                const container = $(`#replyFormContainer-${commentId}`);
+                
+                container.removeClass("d-none");
+                const input = container.find(".reply-input");
+                if (userName) {
+                    input.val('@@' + userName + ' ');
+                }
+                input.focus();
             });
 
             // Nhận cập nhật tương tác thời gian thực

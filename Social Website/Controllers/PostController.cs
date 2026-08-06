@@ -123,7 +123,7 @@ namespace Social_Website.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateComment(long postId, string content)
+        public async Task<IActionResult> CreateComment(long postId, string content, long? parentCommentId = null)
         {
             var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null)
@@ -159,7 +159,8 @@ namespace Social_Website.Controllers
                 Content = content.Trim(),
                 CreatedAt = DateTime.Now,
                 PostId = postId,
-                UserId = currentUser.UserId
+                UserId = currentUser.UserId,
+                ParentCommentId = parentCommentId
             };
 
             _context.Comments.Add(comment);
@@ -170,6 +171,7 @@ namespace Social_Website.Controllers
             {
                 postId = comment.PostId,
                 commentId = comment.CommentId,
+                parentCommentId = comment.ParentCommentId,
                 content = comment.Content,
                 createdAt = comment.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
                 fullName = currentUser.FullName,
@@ -179,7 +181,61 @@ namespace Social_Website.Controllers
                 postAuthorUserId = post.UserId
             });
 
-            return Json(new { success = true });
+            return Json(new { success = true, commentId = comment.CommentId, parentCommentId = comment.ParentCommentId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleCommentLike(long commentId)
+        {
+            var currentUser = this.GetCurrentUser(_context);
+            if (currentUser == null)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            }
+
+            var comment = await _context.Comments
+                .Include(c => c.Likes)
+                .FirstOrDefaultAsync(c => c.CommentId == commentId);
+
+            if (comment == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy bình luận" });
+            }
+
+            var existingLike = comment.Likes.FirstOrDefault(l => l.UserId == currentUser.UserId);
+            bool isLiked = false;
+
+            if (existingLike != null)
+            {
+                _context.CommentLikes.Remove(existingLike);
+                isLiked = false;
+            }
+            else
+            {
+                var like = new CommentLike
+                {
+                    CommentId = commentId,
+                    UserId = currentUser.UserId,
+                    ReactionType = "Like"
+                };
+                _context.CommentLikes.Add(like);
+                isLiked = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            int likeCount = await _context.CommentLikes.CountAsync(l => l.CommentId == commentId);
+
+            // Broadcast cập nhật lượt thích bình luận qua SignalR
+            await _hubContext.Clients.All.SendAsync("UpdateCommentLikes", commentId, comment.PostId, likeCount);
+
+            return Json(new
+            {
+                success = true,
+                commentId = commentId,
+                isLiked = isLiked,
+                likeCount = likeCount
+            });
         }
 
         [HttpPost]

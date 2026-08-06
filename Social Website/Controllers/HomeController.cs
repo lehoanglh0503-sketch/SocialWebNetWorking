@@ -31,12 +31,20 @@ namespace Social_Website.Controllers
 
             long currentUserId = currentUser.UserId;
 
-            // 1. Lấy toàn bộ bài viết cùng thông tin người đăng và các bình luận
+            // 1. Lấy toàn bộ bài viết cùng thông tin người đăng, lượt thích, bình luận và phản hồi bình luận
             var posts = await _context.Posts
                 .Include(p => p.User)
                 .Include(p => p.Likes)
                 .Include(p => p.Comments)
                     .ThenInclude(c => c.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Likes)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Replies)
+                        .ThenInclude(r => r.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Replies)
+                        .ThenInclude(r => r.Likes)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
