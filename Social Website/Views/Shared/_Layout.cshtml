@@ -62,22 +62,48 @@
                         @if (userId != null)
                         {
                             <div class="dropdown">
-                                <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@avatarUrl" alt="@fullName" class="avatar avatar-sm me-2" />
-                                    <span class="fw-semibold">@fullName</span>
+                                <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle px-2 py-1 rounded-pill hover-bg-light" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="@avatarUrl" alt="@fullName" class="avatar avatar-sm me-2 rounded-circle shadow-sm border border-2 border-white" />
+                                    <span class="fw-semibold me-1">@fullName</span>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownUser">
-                                    <li><span class="dropdown-item-text text-muted">@@@username</span></li>
-                                    <li><hr class="dropdown-divider"></li>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 mt-2 dropdown-user-menu animate-fade-in-up" aria-labelledby="dropdownUser" style="min-width: 250px;">
+                                    <li class="px-3 py-2.5 bg-light rounded-3 mb-2 d-flex align-items-center">
+                                        <img src="@avatarUrl" alt="@fullName" class="avatar rounded-circle me-2.5 shadow-sm border border-2 border-white" style="width: 40px; height: 40px;" />
+                                        <div class="overflow-hidden">
+                                            <div class="fw-bold text-dark text-truncate" style="max-width: 150px; font-size: 0.95rem;">@fullName</div>
+                                            <div class="text-muted small text-truncate" style="font-size: 0.8rem;">@@@username</div>
+                                        </div>
+                                        @if (isAdmin == "True")
+                                        {
+                                            <span class="badge bg-danger text-white rounded-pill ms-auto px-2 py-1 small" style="font-size: 0.68rem;">Admin</span>
+                                        }
+                                    </li>
                                     <li>
-                                        <a class="dropdown-item d-flex align-items-center text-dark" asp-controller="Profile" asp-action="Index">
-                                            <i class="bi bi-person-fill me-2 text-primary"></i>Trang cá nhân
+                                        <a class="dropdown-item d-flex align-items-center py-2 px-3 rounded-3 fw-medium text-dark hover-primary-item" asp-controller="Profile" asp-action="Index">
+                                            <div class="icon-shape me-2.5 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 1rem;">
+                                                <i class="bi bi-person-fill"></i>
+                                            </div>
+                                            <span>Trang cá nhân</span>
                                         </a>
                                     </li>
-                                    <li><hr class="dropdown-divider"></li>
+                                    @if (isAdmin == "True")
+                                    {
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center py-2 px-3 rounded-3 fw-medium text-danger hover-danger-item" asp-controller="Admin" asp-action="Index">
+                                                <div class="icon-shape me-2.5 rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 1rem;">
+                                                    <i class="bi bi-shield-lock-fill"></i>
+                                                </div>
+                                                <span>Trang quản trị</span>
+                                            </a>
+                                        </li>
+                                    }
+                                    <li><hr class="dropdown-divider my-2 border-light"></li>
                                     <li>
-                                        <a class="dropdown-item text-danger d-flex align-items-center" asp-controller="Auth" asp-action="Logout">
-                                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                        <a class="dropdown-item d-flex align-items-center py-2 px-3 rounded-3 fw-medium text-danger hover-danger-item" asp-controller="Auth" asp-action="Logout">
+                                            <div class="icon-shape me-2.5 rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 1rem;">
+                                                <i class="bi bi-box-arrow-right"></i>
+                                            </div>
+                                            <span>Đăng xuất</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -97,6 +123,142 @@
         <main role="main" class="pb-5">
             @RenderBody()
         </main>
+    </div>
+
+    <!-- Floating Button Giới thiệu nhóm (Góc dưới bên phải) -->
+    <div class="position-fixed bottom-0 end-0 m-4" style="z-index: 1080;">
+        <button type="button" class="btn btn-primary rounded-pill shadow-lg px-3.5 py-2.5 d-flex align-items-center gap-2 fw-bold border-2 border-white animate-fade-in-up hover-lift" data-bs-toggle="modal" data-bs-target="#assignmentModal" style="box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4) !important;">
+            <i class="bi bi-info-circle-fill fs-5"></i>
+            <span>Giới thiệu nhóm</span>
+        </button>
+    </div>
+
+    <!-- Modal Bảng Phân Công Nhiệm Vụ -->
+    <div class="modal fade" id="assignmentModal" tabindex="-1" aria-labelledby="assignmentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+                <div class="modal-header bg-primary text-white p-3.5 border-0">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="icon-shape bg-white text-primary rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
+                            <i class="bi bi-people-fill fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-white mb-0" id="assignmentModalLabel">BẢNG PHÂN CÔNG NHIỆM VỤ ĐỒ ÁN CONNECTIFY</h5>
+                            <p class="small text-white-50 mb-0">Hệ Thống Mạng Xã Hội Connectify - Đồ Án Lập Trình Web</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <div class="table-responsive rounded-3 border bg-white shadow-sm">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-uppercase small fw-bold text-secondary">
+                                <tr>
+                                    <th scope="col" class="py-3 px-3 text-center" style="width: 18%;">Tên Thành Viên</th>
+                                    <th scope="col" class="py-3 px-3 text-center" style="width: 72%;">Phân Công Nhiệm Vụ</th>
+                                    <th scope="col" class="py-3 px-3 text-center" style="width: 10%;">Mức Độ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Thành viên 1: Lê Hoàng -->
+                                <tr>
+                                    <td class="px-3 py-4 text-center align-top bg-white border-end">
+                                        <div class="avatar avatar-md mx-auto mb-2 rounded-circle border border-2 border-primary bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center fs-5 shadow-sm" style="width: 52px; height: 52px;">
+                                            LH
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-1">Lê Hoàng</h6>
+                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 small">Thành viên 1</span>
+                                    </td>
+                                    <td class="px-3 py-3 align-top">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="p-3 rounded-3 border bg-light h-100">
+                                                    <h6 class="fw-bold text-primary mb-2.5 d-flex align-items-center gap-2">
+                                                        <i class="bi bi-globe fs-5"></i> 1. Lập Trình Web
+                                                    </h6>
+                                                    <ul class="mb-0 text-secondary small ps-3 flex-column d-flex gap-1.5" style="line-height: 1.5;">
+                                                        <li><strong>Thiết kế UI/UX</strong> giao diện Mạng Xã Hội Connectify (Newsfeed, Profile, Auth).</li>
+                                                        <li><strong>Lập trình Module Bài viết</strong>: Đăng bài kèm ảnh (<code>/uploads/posts/</code>).</li>
+                                                        <li><strong>Thả cảm xúc 6 loại</strong> (Like, Love, Haha, Wow, Sad, Angry) &amp; Bình luận lồng nhau.</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 rounded-3 border bg-light h-100">
+                                                    <h6 class="fw-bold text-success mb-2.5 d-flex align-items-center gap-2">
+                                                        <i class="bi bi-file-earmark-text fs-5"></i> 2. Biên Soạn Báo Cáo
+                                                    </h6>
+                                                    <ul class="mb-0 text-secondary small ps-3 flex-column d-flex gap-1.5" style="line-height: 1.5;">
+                                                        <li>Biên soạn báo cáo tổng hợp.</li>
+                                                        <li>Thiết kế Sơ đồ luồng dữ liệu <strong>DFD Mức 0, 1, 2</strong>.</li>
+                                                        <li>Sơ đồ <strong>Use Case</strong> (1-include 1-extend), 16 Đặc tả Use Case &amp; Deployment Diagram.</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-4 text-center align-middle border-start bg-white">
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2 fw-bold fs-6">
+                                            <i class="bi bi-check-circle-fill me-1"></i>100%
+                                        </span>
+                                    </td>
+                                </tr>
+
+                                <!-- Thành viên 2: Phạm Tấn Tài -->
+                                <tr>
+                                    <td class="px-3 py-4 text-center align-top bg-white border-end">
+                                        <div class="avatar avatar-md mx-auto mb-2 rounded-circle border border-2 border-danger bg-danger-subtle text-danger fw-bold d-flex align-items-center justify-content-center fs-5 shadow-sm" style="width: 52px; height: 52px;">
+                                            TT
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-1">Phạm Tấn Tài</h6>
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1 small">Thành viên 2</span>
+                                    </td>
+                                    <td class="px-3 py-3 align-top">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="p-3 rounded-3 border bg-light h-100">
+                                                    <h6 class="fw-bold text-primary mb-2.5 d-flex align-items-center gap-2">
+                                                        <i class="bi bi-cpu fs-5"></i> 1. Lập Trình Web
+                                                    </h6>
+                                                    <ul class="mb-0 text-secondary small ps-3 flex-column d-flex gap-1.5" style="line-height: 1.5;">
+                                                        <li><strong>Module Kết nối bạn bè</strong> (Friendships), Gợi ý kết bạn.</li>
+                                                        <li><strong>Nhắn tin trò chuyện 1-1</strong> real-time qua SignalR <code>ChatHub</code>.</li>
+                                                        <li><strong>Trang Admin Dashboard</strong>: Thống kê 4 chỉ số, Reset pass, Xóa user Cascade Clean, Duyệt PostReports &amp; BannedWords.</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 rounded-3 border bg-light h-100">
+                                                    <h6 class="fw-bold text-success mb-2.5 d-flex align-items-center gap-2">
+                                                        <i class="bi bi-diagram-3 fs-5"></i> 2. Biên Soạn Báo Cáo
+                                                    </h6>
+                                                    <ul class="mb-0 text-secondary small ps-3 flex-column d-flex gap-1.5" style="line-height: 1.5;">
+                                                        <li>Vẽ Sơ đồ Trạng thái (State Diagram).</li>
+                                                        <li>Sơ đồ Hoạt động Swimlane (Activity Diagram).</li>
+                                                        <li>Sơ đồ Thực thể <strong>ERD 9 bảng</strong> &amp; Sơ đồ Logic CSDL.</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-4 text-center align-middle border-start bg-white">
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2 fw-bold fs-6">
+                                            <i class="bi bi-check-circle-fill me-1"></i>100%
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white p-3 border-0 justify-content-between">
+                    <div class="text-muted small">
+                        <i class="bi bi-shield-check text-success me-1"></i>Connectify Social Network Project &copy; 2026
+                    </div>
+                    <button type="button" class="btn btn-primary rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

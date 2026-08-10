@@ -21,15 +21,17 @@ namespace Social_Website.Controllers
         private async Task<(bool contains, List<string> detectedWords)> ContainsViolentWordsAsync(string text)
         {
             var detectedWords = new List<string>();
-            if (string.IsNullOrEmpty(text)) return (false, detectedWords);
-
-            string lowerText = text.ToLower();
+            if (string.IsNullOrWhiteSpace(text)) return (false, detectedWords);
 
             // Lấy toàn bộ từ cấm từ database
             var bannedWords = await _context.BannedWords.Select(b => b.Word).ToListAsync();
+            if (bannedWords.Count == 0) return (false, detectedWords);
+
+            string lowerText = text.ToLower();
 
             foreach (var word in bannedWords)
             {
+                if (string.IsNullOrWhiteSpace(word)) continue;
                 string pattern = @"(?i)(?:\s|^)" + System.Text.RegularExpressions.Regex.Escape(word.ToLower()) + @"(?:\s|[.,!?;:]|$)";
                 if (System.Text.RegularExpressions.Regex.IsMatch(lowerText, pattern))
                 {

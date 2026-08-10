@@ -263,7 +263,7 @@
                         <!-- Comments Section -->
                         <div class="comment-section" id="commentSection-@post.PostId">
                             <div class="comment-list d-flex flex-column gap-2 mb-3" id="commentList-@post.PostId">
-                                @foreach (var comment in post.Comments.Where(c => c.ParentCommentId == null).OrderBy(c => c.CreatedAt))
+                                @foreach (var comment in post.Comments.Where(c => c.ParentCommentId == null).DistinctBy(c => c.CommentId).OrderBy(c => c.CreatedAt))
                                 {
                                     var userCommentLike = comment.Likes.FirstOrDefault(l => l.UserId == currentUser?.UserId);
                                     bool isCommentLiked = userCommentLike != null;
@@ -364,7 +364,7 @@
 
                                         <!-- Danh sách phản hồi (Replies) dưới bình luận -->
                                         <div class="reply-list ms-4 ps-3 border-start mt-2 d-flex flex-column gap-2" id="replyList-@comment.CommentId">
-                                            @foreach (var reply in comment.Replies.OrderBy(r => r.CreatedAt))
+                                            @foreach (var reply in comment.Replies.DistinctBy(r => r.CommentId).OrderBy(r => r.CreatedAt))
                                             {
                                                 var userReplyLike = reply.Likes.FirstOrDefault(l => l.UserId == currentUser?.UserId);
                                                 bool isReplyLiked = userReplyLike != null;
@@ -928,13 +928,21 @@
             // 3. Gửi bình luận hoặc trả lời bình luận bằng AJAX
             $(document).on("submit", ".create-comment-form", function (e) {
                 e.preventDefault();
+                e.stopImmediatePropagation();
                 const form = $(this);
-                const postId = form.data("post-id");
-                const parentId = form.data("parent-id") || null;
+                const postId = form.attr("data-post-id") || form.data("postId") || form.data("post-id");
+                const parentId = form.attr("data-parent-id") || form.data("parentId") || form.data("parent-id") || null;
                 const $input = form.find(".comment-input");
                 const content = $input.val();
-                
+
+                if (!content || content.trim().length === 0) return;
+
+                const $submitBtn = form.find("button[type='submit']");
+                if ($submitBtn.prop("disabled")) return;
+                $submitBtn.prop("disabled", true);
+
                 $.post("/Post/CreateComment", { postId: postId, content: content, parentCommentId: parentId }, function (res) {
+                    $submitBtn.prop("disabled", false);
                     if (res.success) {
                         $input.val("");
                         if (parentId) {
@@ -943,6 +951,8 @@
                     } else {
                         alert(res.message);
                     }
+                }).fail(function () {
+                    $submitBtn.prop("disabled", false);
                 });
             });
 
@@ -1088,8 +1098,8 @@
 
             // Bấm 'Trả lời' mở khung nhập phản hồi
             $(document).on("click", ".btn-reply-comment-trigger", function () {
-                const commentId = $(this).data("comment-id");
-                const userName = $(this).data("user-name");
+                const commentId = $(this).attr("data-comment-id") || $(this).data("commentId") || $(this).data("comment-id");
+                const userName = $(this).attr("data-user-name") || $(this).data("userName") || $(this).data("user-name");
                 const container = $(`#replyFormContainer-${commentId}`);
                 
                 container.removeClass("d-none");
@@ -1203,20 +1213,6 @@
                 });
             });
 
-            // 3. Gửi bình luận mới bằng AJAX (lọc từ ngữ bạo lực)
-            $(document).on("submit", ".create-comment-form", function (e) {
-                e.preventDefault();
-                const postId = $(this).data("post-id");
-                const $input = $(this).find(".comment-input");
-                const content = $input.val();
-                $.post("/Post/CreateComment", { postId: postId, content: content }, function (res) {
-                    if (res.success) {
-                        $input.val("");
-                    } else {
-                        alert(res.message);
-                    }
-                });
-            });
 
             // 4. Gửi yêu cầu kết bạn bằng AJAX
             $(document).on("click", ".btn-add-friend", function () {

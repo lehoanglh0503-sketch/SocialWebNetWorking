@@ -33,6 +33,7 @@ namespace Social_Website.Controllers
 
             // 1. Lấy toàn bộ bài viết cùng thông tin người đăng, lượt thích, bình luận và phản hồi bình luận
             var posts = await _context.Posts
+                .AsSplitQuery()
                 .Include(p => p.User)
                 .Include(p => p.Likes)
                 .Include(p => p.Comments)
