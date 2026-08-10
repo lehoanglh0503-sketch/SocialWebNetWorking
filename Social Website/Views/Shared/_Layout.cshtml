@@ -127,135 +127,141 @@
 
     <!-- Floating Button Giới thiệu nhóm (Góc dưới bên phải) -->
     <div class="position-fixed bottom-0 end-0 m-4" style="z-index: 1080;">
-        <button type="button" class="btn btn-primary rounded-pill shadow-lg px-3.5 py-2.5 d-flex align-items-center gap-2 fw-bold border-2 border-white animate-fade-in-up hover-lift" data-bs-toggle="modal" data-bs-target="#assignmentModal" style="box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4) !important;">
-            <i class="bi bi-info-circle-fill fs-5"></i>
-            <span>Giới thiệu nhóm</span>
+        <button type="button" class="btn btn-primary rounded-pill shadow-lg px-4 py-2.5 d-flex align-items-center gap-2.5 fw-bold border-2 border-white animate-fade-in-up hover-lift" data-bs-toggle="modal" data-bs-target="#assignmentModal" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5) !important;">
+            <span class="d-flex align-items-center justify-content-center bg-white text-primary rounded-circle" style="width: 26px; height: 26px;">
+                <i class="bi bi-people-fill" style="font-size: 0.85rem;"></i>
+            </span>
+            <span style="letter-spacing: 0.3px;">Giới thiệu nhóm</span>
         </button>
     </div>
 
-    <!-- Modal Bảng Phân Công Nhiệm Vụ -->
+    <!-- Modal Bảng Phân Công Nhiệm Vụ (Thiết kế Card Grid Hiện Đại) -->
     <div class="modal fade" id="assignmentModal" tabindex="-1" aria-labelledby="assignmentModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
-                <div class="modal-header bg-primary text-white p-3.5 border-0">
+                <!-- Modal Header với Mesh Gradient Sang Trọng -->
+                <div class="modal-header text-white p-4 border-0 position-relative" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%);">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="icon-shape bg-white text-primary rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
-                            <i class="bi bi-people-fill fs-4"></i>
+                        <div class="icon-shape bg-white bg-opacity-20 text-white rounded-circle p-2.5 d-flex align-items-center justify-content-center shadow-sm backdrop-blur" style="width: 52px; height: 52px; backdrop-filter: blur(10px);">
+                            <i class="bi bi-award-fill fs-3"></i>
                         </div>
                         <div>
-                            <h5 class="modal-title fw-bold text-white mb-0" id="assignmentModalLabel">BẢNG PHÂN CÔNG NHIỆM VỤ ĐỒ ÁN CONNECTIFY</h5>
-                            <p class="small text-white-50 mb-0">Hệ Thống Mạng Xã Hội Connectify - Đồ Án Lập Trình Web</p>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge bg-white text-primary rounded-pill px-2.5 py-1 fw-bold small">ĐỒ ÁN LẬP TRÌNH WEB</span>
+                                <span class="badge bg-white bg-opacity-20 text-white rounded-pill px-2.5 py-1 small">MẠNG XÃ HỘI CONNECTIFY</span>
+                            </div>
+                            <h4 class="modal-title fw-extrabold text-white mb-0" id="assignmentModalLabel" style="letter-spacing: -0.5px;">BẢNG PHÂN CÔNG NHIỆM VỤ THỰC HIỆN</h4>
                         </div>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4 bg-light">
-                    <div class="table-responsive rounded-3 border bg-white shadow-sm">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light text-uppercase small fw-bold text-secondary">
-                                <tr>
-                                    <th scope="col" class="py-3 px-3 text-center" style="width: 18%;">Tên Thành Viên</th>
-                                    <th scope="col" class="py-3 px-3 text-center" style="width: 72%;">Phân Công Nhiệm Vụ</th>
-                                    <th scope="col" class="py-3 px-3 text-center" style="width: 10%;">Mức Độ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Thành viên 1: Lê Hoàng -->
-                                <tr>
-                                    <td class="px-3 py-4 text-center align-top bg-white border-end">
-                                        <div class="avatar avatar-md mx-auto mb-2 rounded-circle border border-2 border-primary bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center fs-5 shadow-sm" style="width: 52px; height: 52px;">
+
+                <!-- Modal Body với Layout Card 2 Cột Hiện Đại -->
+                <div class="modal-body p-4" style="background-color: #f8fafc;">
+                    <div class="row g-4">
+                        <!-- THÀNH VIÊN 1: LÊ HOÀNG -->
+                        <div class="col-lg-6">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-hover">
+                                <!-- Header Thẻ Thành Viên 1 -->
+                                <div class="p-3.5 border-bottom bg-white d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle-gradient rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #4f46e5, #8b5cf6); font-size: 1.1rem;">
                                             LH
                                         </div>
-                                        <h6 class="fw-bold text-dark mb-1">Lê Hoàng</h6>
-                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 small">Thành viên 1</span>
-                                    </td>
-                                    <td class="px-3 py-3 align-top">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <div class="p-3 rounded-3 border bg-light h-100">
-                                                    <h6 class="fw-bold text-primary mb-2.5 d-flex align-items-center gap-2">
-                                                        <i class="bi bi-globe fs-5"></i> 1. Lập Trình Web
-                                                    </h6>
-                                                    <ul class="mb-0 text-secondary small ps-3 flex-column d-flex gap-1.5" style="line-height: 1.5;">
-                                                        <li><strong>Thiết kế UI/UX</strong> giao diện Mạng Xã Hội Connectify (Newsfeed, Profile, Auth).</li>
-                                                        <li><strong>Lập trình Module Bài viết</strong>: Đăng bài kèm ảnh (<code>/uploads/posts/</code>).</li>
-                                                        <li><strong>Thả cảm xúc 6 loại</strong> (Like, Love, Haha, Wow, Sad, Angry) &amp; Bình luận lồng nhau.</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="p-3 rounded-3 border bg-light h-100">
-                                                    <h6 class="fw-bold text-success mb-2.5 d-flex align-items-center gap-2">
-                                                        <i class="bi bi-file-earmark-text fs-5"></i> 2. Biên Soạn Báo Cáo
-                                                    </h6>
-                                                    <ul class="mb-0 text-secondary small ps-3 flex-column d-flex gap-1.5" style="line-height: 1.5;">
-                                                        <li>Biên soạn báo cáo tổng hợp.</li>
-                                                        <li>Thiết kế Sơ đồ luồng dữ liệu <strong>DFD Mức 0, 1, 2</strong>.</li>
-                                                        <li>Sơ đồ <strong>Use Case</strong> (1-include 1-extend), 16 Đặc tả Use Case &amp; Deployment Diagram.</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
+                                        <div>
+                                            <h5 class="fw-bold text-dark mb-0">Lê Hoàng</h5>
+                                            <span class="text-muted small">Thành viên 1 • Trưởng nhóm / Dev</span>
                                         </div>
-                                    </td>
-                                    <td class="px-3 py-4 text-center align-middle border-start bg-white">
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2 fw-bold fs-6">
-                                            <i class="bi bi-check-circle-fill me-1"></i>100%
-                                        </span>
-                                    </td>
-                                </tr>
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-1">
+                                        <i class="bi bi-check-circle-fill"></i> 100% Hoàn thành
+                                    </span>
+                                </div>
+                                <!-- Nội dung Công việc Thành viên 1 -->
+                                <div class="card-body p-3.5 bg-white">
+                                    <!-- Phần 1: Lập trình Web -->
+                                    <div class="p-3 rounded-3 mb-3" style="background-color: #f0f3ff; border-left: 4px solid #4f46e5;">
+                                        <h6 class="fw-bold text-primary mb-2 d-flex align-items-center gap-2">
+                                            <i class="bi bi-code-slash fs-5"></i> 1. Phát Trẻn Module Web
+                                        </h6>
+                                        <ul class="mb-0 text-secondary small ps-3 d-flex flex-column gap-1.5" style="line-height: 1.5;">
+                                            <li><strong>Thiết kế UI/UX</strong> giao diện Mạng Xã Hội Connectify (Newsfeed, Profile, Auth).</li>
+                                            <li><strong>Lập trình Module Bài viết</strong>: Đăng bài kèm ảnh (<code>/uploads/posts/</code>).</li>
+                                            <li><strong>Thả cảm xúc 6 loại</strong> (Like, Love, Haha, Wow, Sad, Angry) &amp; Bình luận lồng nhau.</li>
+                                        </ul>
+                                    </div>
 
-                                <!-- Thành viên 2: Phạm Tấn Tài -->
-                                <tr>
-                                    <td class="px-3 py-4 text-center align-top bg-white border-end">
-                                        <div class="avatar avatar-md mx-auto mb-2 rounded-circle border border-2 border-danger bg-danger-subtle text-danger fw-bold d-flex align-items-center justify-content-center fs-5 shadow-sm" style="width: 52px; height: 52px;">
+                                    <!-- Phần 2: Báo cáo & Sơ đồ -->
+                                    <div class="p-3 rounded-3" style="background-color: #f0fdf4; border-left: 4px solid #16a34a;">
+                                        <h6 class="fw-bold text-success mb-2 d-flex align-items-center gap-2">
+                                            <i class="bi bi-file-earmark-bar-graph fs-5"></i> 2. Biên Soạn Báo Cáo &amp; Sơ Đồ
+                                        </h6>
+                                        <ul class="mb-0 text-secondary small ps-3 d-flex flex-column gap-1.5" style="line-height: 1.5;">
+                                            <li>Biên soạn báo cáo tổng hợp dự án.</li>
+                                            <li>Thiết kế Sơ đồ luồng dữ liệu <strong>DFD Mức 0, 1, 2</strong>.</li>
+                                            <li>Sơ đồ <strong>Use Case</strong> (1-include 1-extend), 16 Đặc tả Use Case &amp; Deployment Diagram.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- THÀNH VIÊN 2: PHẠM TẤN TÀI -->
+                        <div class="col-lg-6">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-hover">
+                                <!-- Header Thẻ Thành Viên 2 -->
+                                <div class="p-3.5 border-bottom bg-white d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle-gradient rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #06b6d4, #3b82f6); font-size: 1.1rem;">
                                             TT
                                         </div>
-                                        <h6 class="fw-bold text-dark mb-1">Phạm Tấn Tài</h6>
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1 small">Thành viên 2</span>
-                                    </td>
-                                    <td class="px-3 py-3 align-top">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <div class="p-3 rounded-3 border bg-light h-100">
-                                                    <h6 class="fw-bold text-primary mb-2.5 d-flex align-items-center gap-2">
-                                                        <i class="bi bi-cpu fs-5"></i> 1. Lập Trình Web
-                                                    </h6>
-                                                    <ul class="mb-0 text-secondary small ps-3 flex-column d-flex gap-1.5" style="line-height: 1.5;">
-                                                        <li><strong>Module Kết nối bạn bè</strong> (Friendships), Gợi ý kết bạn.</li>
-                                                        <li><strong>Nhắn tin trò chuyện 1-1</strong> real-time qua SignalR <code>ChatHub</code>.</li>
-                                                        <li><strong>Trang Admin Dashboard</strong>: Thống kê 4 chỉ số, Reset pass, Xóa user Cascade Clean, Duyệt PostReports &amp; BannedWords.</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="p-3 rounded-3 border bg-light h-100">
-                                                    <h6 class="fw-bold text-success mb-2.5 d-flex align-items-center gap-2">
-                                                        <i class="bi bi-diagram-3 fs-5"></i> 2. Biên Soạn Báo Cáo
-                                                    </h6>
-                                                    <ul class="mb-0 text-secondary small ps-3 flex-column d-flex gap-1.5" style="line-height: 1.5;">
-                                                        <li>Vẽ Sơ đồ Trạng thái (State Diagram).</li>
-                                                        <li>Sơ đồ Hoạt động Swimlane (Activity Diagram).</li>
-                                                        <li>Sơ đồ Thực thể <strong>ERD 9 bảng</strong> &amp; Sơ đồ Logic CSDL.</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
+                                        <div>
+                                            <h5 class="fw-bold text-dark mb-0">Phạm Tấn Tài</h5>
+                                            <span class="text-muted small">Thành viên 2 • Backend / Database</span>
                                         </div>
-                                    </td>
-                                    <td class="px-3 py-4 text-center align-middle border-start bg-white">
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2 fw-bold fs-6">
-                                            <i class="bi bi-check-circle-fill me-1"></i>100%
-                                        </span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-1">
+                                        <i class="bi bi-check-circle-fill"></i> 100% Hoàn thành
+                                    </span>
+                                </div>
+                                <!-- Nội dung Công việc Thành viên 2 -->
+                                <div class="card-body p-3.5 bg-white">
+                                    <!-- Phần 1: Lập trình Web -->
+                                    <div class="p-3 rounded-3 mb-3" style="background-color: #ecfeff; border-left: 4px solid #0891b2;">
+                                        <h6 class="fw-bold text-info mb-2 d-flex align-items-center gap-2" style="color: #0891b2 !important;">
+                                            <i class="bi bi-cpu fs-5"></i> 1. Phát Trẻn Module Web &amp; Realtime
+                                        </h6>
+                                        <ul class="mb-0 text-secondary small ps-3 d-flex flex-column gap-1.5" style="line-height: 1.5;">
+                                            <li><strong>Module Kết nối bạn bè</strong> (Friendships), Gợi ý kết bạn.</li>
+                                            <li><strong>Nhắn tin trò chuyện 1-1</strong> real-time qua SignalR <code>ChatHub</code>.</li>
+                                            <li><strong>Trang Admin Dashboard</strong>: Thống kê 4 chỉ số, Reset pass, Xóa user Cascade Clean, Duyệt PostReports &amp; BannedWords.</li>
+                                        </ul>
+                                    </div>
+
+                                    <!-- Phần 2: Báo cáo & Sơ đồ -->
+                                    <div class="p-3 rounded-3" style="background-color: #f0fdf4; border-left: 4px solid #16a34a;">
+                                        <h6 class="fw-bold text-success mb-2 d-flex align-items-center gap-2">
+                                            <i class="bi bi-diagram-3 fs-5"></i> 2. Biên Soạn Báo Cáo &amp; Sơ Đồ
+                                        </h6>
+                                        <ul class="mb-0 text-secondary small ps-3 d-flex flex-column gap-1.5" style="line-height: 1.5;">
+                                            <li>Vẽ Sơ đồ Trạng thái (State Diagram).</li>
+                                            <li>Sơ đồ Hoạt động Swimlane (Activity Diagram).</li>
+                                            <li>Sơ đồ Thực thể <strong>ERD 9 bảng</strong> &amp; Sơ đồ Logic CSDL.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-white p-3 border-0 justify-content-between">
-                    <div class="text-muted small">
-                        <i class="bi bi-shield-check text-success me-1"></i>Connectify Social Network Project &copy; 2026
+
+                <!-- Modal Footer -->
+                <div class="modal-footer bg-white p-3.5 border-0 justify-content-between">
+                    <div class="d-flex align-items-center gap-2 text-muted small">
+                        <i class="bi bi-shield-check text-success fs-5"></i>
+                        <span>Đồ Án Mạng Xã Hội Connectify &copy; 2026 • Đã hoàn thành 100% yêu cầu</span>
                     </div>
-                    <button type="button" class="btn btn-primary rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary rounded-3 px-4 py-2 fw-semibold" data-bs-dismiss="modal">Đóng cửa sổ</button>
                 </div>
             </div>
         </div>
