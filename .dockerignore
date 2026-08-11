@@ -1,0 +1,6 @@
+.vs/
+.git/
+.gitignore
+bin/
+obj/
+*.user
