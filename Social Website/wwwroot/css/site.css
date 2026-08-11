@@ -286,3 +286,16 @@ body {
     transform: translateY(-3px);
     box-shadow: 0 15px 30px -5px rgba(79, 70, 229, 0.5) !important;
 }
+
+/* Table Action Buttons layout fix */
+.table .btn {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}

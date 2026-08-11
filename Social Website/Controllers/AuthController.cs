@@ -44,12 +44,24 @@ namespace Social_Website.Controllers
                 return View();
             }
 
+            if (user.IsLocked)
+            {
+                ModelState.AddModelError("", "Tài khoản của bạn đã bị KHÓA do vi phạm tiêu chuẩn cộng đồng (đã có 3 lần báo cáo vi phạm được Admin phê duyệt). Vui lòng liên hệ Quản trị viên.");
+                return View();
+            }
+
             // Lưu thông tin đăng nhập vào Session
             HttpContext.Session.SetString("UserId", user.UserId.ToString());
             HttpContext.Session.SetString("Username", user.Username);
             HttpContext.Session.SetString("FullName", user.FullName);
             HttpContext.Session.SetString("AvatarUrl", user.AvatarUrl);
             HttpContext.Session.SetString("IsAdmin", user.IsAdmin.ToString());
+
+            // Nếu tài khoản có 2 lần vi phạm đã duyệt -> hiển thị cảnh báo cho user khi đăng nhập thành công
+            if (user.ApprovedReportCount == 2)
+            {
+                TempData["AccountWarning"] = "CẢNH BÁO VI PHẠM: Tài khoản của bạn đã bị báo cáo và được Admin phê duyệt 2 lần. Nếu vi phạm thêm 1 lần nữa (tổng 3 lần), tài khoản của bạn sẽ bị KHÓA vĩnh viễn!";
+            }
 
             return RedirectToAction("Index", "Home");
         }

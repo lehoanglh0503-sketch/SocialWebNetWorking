@@ -54,10 +54,11 @@
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 30%">Thành viên</th>
-                        <th style="width: 25%">Tài khoản</th>
-                        <th style="width: 20%">Vai trò</th>
-                        <th style="width: 25%" class="text-end">Hành động</th>
+                        <th style="width: 22%">Thành viên</th>
+                        <th style="width: 18%">Tài khoản</th>
+                        <th style="width: 15%">Vai trò</th>
+                        <th style="width: 15%">Trạng thái</th>
+                        <th style="width: 30%; min-width: 310px;" class="text-end text-nowrap">Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -67,36 +68,53 @@
                             <td>
                                 <div class="d-flex align-items-center">
                                     <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-sm me-3" />
-                                    <span class="fw-bold text-dark">@user.FullName</span>
+                                    <span class="fw-bold text-dark text-nowrap">@user.FullName</span>
                                 </div>
                             </td>
                             <td>
-                                <span class="text-muted">@@@user.Username</span>
+                                <span class="text-muted text-nowrap">@@@user.Username</span>
                             </td>
                             <td>
                                 @if (user.IsAdmin)
                                 {
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small rounded" style="font-weight: 500;">Admin</span>
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small rounded text-nowrap" style="font-weight: 500;">Admin</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 small rounded" style="font-weight: 500;">Thành viên</span>
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 small rounded text-nowrap" style="font-weight: 500;">Thành viên</span>
                                 }
                             </td>
-                            <td class="text-end">
-                                <div class="d-flex justify-content-end gap-2">
+                            <td>
+                                @if (user.IsLocked)
+                                {
+                                    <span class="badge bg-danger text-white px-2 py-1 small rounded text-nowrap"><i class="bi bi-lock-fill me-1"></i>Đã bị khóa</span>
+                                }
+                                else if (user.ApprovedReportCount > 0)
+                                {
+                                    <span class="badge bg-warning text-dark px-2 py-1 small rounded text-nowrap"><i class="bi bi-exclamation-triangle-fill me-1"></i>Vi phạm: @user.ApprovedReportCount/3</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small rounded text-nowrap"><i class="bi bi-check-circle me-1"></i>Hoạt động</span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap" style="white-space: nowrap;">
+                                <div class="d-flex justify-content-end gap-1.5 align-items-center flex-nowrap">
                                      @if (user.UserId != currentUserId)
                                      {
-                                         <button class="btn btn-sm btn-outline-primary px-3 rounded-pill btn-change-password-trigger" data-user-id="@user.UserId" data-user-fullname="@user.FullName" data-user-username="@user.Username">
+                                         <button class="btn btn-sm @(user.IsLocked ? "btn-outline-success" : "btn-outline-warning") px-2.5 py-1 rounded-pill text-nowrap btn-toggle-lock-user" data-user-id="@user.UserId" data-is-locked="@user.IsLocked.ToString().ToLower()" style="white-space: nowrap; font-size: 0.82rem;">
+                                             <i class="bi @(user.IsLocked ? "bi-unlock-fill" : "bi-lock-fill") me-1"></i>@(user.IsLocked ? "Mở khóa" : "Khóa")
+                                         </button>
+                                         <button class="btn btn-sm btn-outline-primary px-2.5 py-1 rounded-pill text-nowrap btn-change-password-trigger" data-user-id="@user.UserId" data-user-fullname="@user.FullName" data-user-username="@user.Username" style="white-space: nowrap; font-size: 0.82rem;">
                                              <i class="bi bi-key-fill me-1"></i>Đổi mật khẩu
                                          </button>
-                                         <button class="btn btn-sm btn-outline-danger px-3 rounded-pill btn-delete-user" data-user-id="@user.UserId">
+                                         <button class="btn btn-sm btn-outline-danger px-2.5 py-1 rounded-pill text-nowrap btn-delete-user" data-user-id="@user.UserId" style="white-space: nowrap; font-size: 0.82rem;">
                                              <i class="bi bi-trash-fill me-1"></i>Xóa
                                          </button>
                                      }
                                     else
                                     {
-                                        <span class="badge bg-light text-muted border px-3 py-1.5 rounded-pill small italic">Tài khoản của bạn</span>
+                                        <span class="badge bg-light text-muted border px-3 py-1.5 rounded-pill small italic text-nowrap">Tài khoản của bạn</span>
                                     }
                                 </div>
                             </td>
@@ -149,6 +167,25 @@
                         alert(res.message);
                     }
                 });
+            });
+
+            // Khóa / Mở khóa tài khoản thủ công
+            $(document).on("click", ".btn-toggle-lock-user", function (e) {
+                e.preventDefault();
+                const userId = $(this).data("user-id");
+                const isLocked = $(this).data("is-locked") === true || $(this).data("is-locked") === "true";
+                const actionText = isLocked ? "MỞ KHÓA" : "KHÓA";
+
+                if (confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản này không?`)) {
+                    $.post("/Admin/ToggleLockUser", { id: userId }, function (res) {
+                        if (res.success) {
+                            alert(res.message);
+                            location.reload();
+                        } else {
+                            alert(res.message);
+                        }
+                    });
+                }
             });
 
             // Xóa người dùng

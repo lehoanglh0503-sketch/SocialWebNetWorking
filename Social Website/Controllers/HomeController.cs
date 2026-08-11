@@ -18,7 +18,7 @@ namespace Social_Website.Controllers
         public async Task<IActionResult> Index()
         {
             var currentUser = this.GetCurrentUser(_context);
-            if (currentUser == null)
+            if (currentUser == null || currentUser.IsLocked)
             {
                 HttpContext.Session.Clear();
                 return RedirectToAction("Login", "Auth");

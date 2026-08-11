@@ -164,6 +164,76 @@ namespace Social_Website.Controllers
             return Json(new { success = true, message = "Đã bỏ qua báo cáo thành công!" });
         }
 
+        [HttpPost]
+        public async Task<IActionResult> ApproveReport(long id)
+        {
+            if (!this.IsAdmin()) return Json(new { success = false, message = "Không có quyền truy cập" });
+
+            var report = await _context.PostReports
+                .Include(r => r.Post)
+                    .ThenInclude(p => p!.User)
+                .FirstOrDefaultAsync(r => r.PostReportId == id);
+
+            if (report == null)
+            {
+                return Json(new { success = false, message = "Báo cáo không tồn tại" });
+            }
+
+            var post = report.Post;
+            string messageExtra = "";
+
+            if (post != null && post.User != null)
+            {
+                var author = post.User;
+                author.ApprovedReportCount += 1;
+
+                if (author.ApprovedReportCount >= 3)
+                {
+                    author.IsLocked = true;
+                    messageExtra = $" Tài khoản \"{author.FullName}\" đã đạt {author.ApprovedReportCount} lần vi phạm và ĐÃ BỊ KHÓA!";
+                }
+                else
+                {
+                    messageExtra = $" Tài khoản \"{author.FullName}\" hiện đã có {author.ApprovedReportCount} lần vi phạm (Sẽ bị khóa nếu đạt 3 lần).";
+                }
+
+                _context.Posts.Remove(post);
+            }
+            else
+            {
+                _context.PostReports.Remove(report);
+                messageExtra = " Đã dọn dẹp báo cáo.";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Đã duyệt báo cáo và xử lý bài viết!" + messageExtra });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleLockUser(long id)
+        {
+            if (!this.IsAdmin()) return Json(new { success = false, message = "Không có quyền truy cập" });
+
+            long currentUserId = this.GetCurrentUserId() ?? 0;
+            if (currentUserId == id)
+            {
+                return Json(new { success = false, message = "Bạn không thể tự thao tác với tài khoản của chính mình!" });
+            }
+
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy người dùng" });
+            }
+
+            user.IsLocked = !user.IsLocked;
+            await _context.SaveChangesAsync();
+
+            string statusText = user.IsLocked ? "đã bị khóa" : "đã được mở khóa";
+            return Json(new { success = true, message = $"Tài khoản \"{user.FullName}\" {statusText} thành công!", isLocked = user.IsLocked });
+        }
+
         public async Task<IActionResult> BannedWords()
         {
             if (!this.IsAdmin())

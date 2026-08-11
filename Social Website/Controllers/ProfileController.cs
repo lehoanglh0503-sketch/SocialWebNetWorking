@@ -23,6 +23,11 @@ namespace Social_Website.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
+            if (this.IsAdmin())
+            {
+                return RedirectToAction("Index", "Admin");
+            }
+
             var user = await _context.Users.FindAsync(currentUserId.Value);
             if (user == null)
             {

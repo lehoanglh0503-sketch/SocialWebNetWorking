@@ -21,6 +21,10 @@ namespace Social_Website.Models
         
         public bool IsAdmin { get; set; } = false;
         
+        public bool IsLocked { get; set; } = false;
+        
+        public int ApprovedReportCount { get; set; } = 0;
+        
         public ICollection<Post> Posts { get; set; } = new List<Post>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }
