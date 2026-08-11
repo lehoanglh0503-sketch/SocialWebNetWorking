@@ -61,6 +61,11 @@ namespace Social_Website.Controllers
             return View(posts);
         }
 
+        public IActionResult About()
+        {
+            return View();
+        }
+
         public IActionResult Privacy()
         {
             return View();

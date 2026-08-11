@@ -1,0 +1,109 @@
+@{
+    ViewData["Title"] = "Giới thiệu thành viên";
+    Layout = "_Layout";
+}
+
+<div class="container py-4">
+    <!-- Tiêu đề trang -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold text-primary mb-2"><i class="bi bi-people-fill me-2"></i>GIỚI THIỆU THÀNH VIÊN NHÓM &amp; BẢNG PHÂN CÔNG</h2>
+        <p class="text-muted fs-6">Đồ án Lập Trình Web - Mạng Xã Hội Connectify</p>
+        <hr class="w-25 mx-auto border-2 border-primary opacity-75" />
+    </div>
+
+    <!-- Hình ảnh & Thông tin 2 Thành viên -->
+    <div class="row g-4 mb-5 justify-content-center">
+        <!-- Thành viên 1: Lê Hoàng -->
+        <div class="col-md-5">
+            <div class="card h-100 border-0 shadow-sm rounded-4 text-center p-4">
+                <div class="position-relative d-inline-block mx-auto mb-3">
+                    <img src="/images/le_hoang.jpg" alt="Lê Hoàng" class="rounded-circle shadow" style="width: 160px; height: 160px; object-fit: cover; border: 4px solid #4f46e5;" />
+                    <span class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-1.5 shadow" title="Trưởng nhóm">
+                        <i class="bi bi-star-fill small"></i>
+                    </span>
+                </div>
+                <h4 class="fw-bold text-dark mb-1">Lê Hoàng</h4>
+                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1.5 fw-semibold mb-3">Thành viên 1 • Trưởng nhóm</span>
+                
+                <div class="text-start bg-light p-3 rounded-3 border">
+                    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-code-square me-1"></i> Nhiệm vụ phụ trách:</h6>
+                    <ul class="small text-secondary mb-0 ps-3">
+                        <li class="mb-1"><strong>Lập trình Web:</strong> Thiết kế UI/UX giao diện Mạng Xã Hội Connectify (Newsfeed, Profile, Auth); Lập trình Module Bài viết, Đăng bài kèm ảnh (<code>/uploads/posts/</code>), Thả cảm xúc 6 loại &amp; Bình luận lồng nhau.</li>
+                        <li><strong>Biên soạn Báo cáo:</strong> Biên soạn báo cáo tổng hợp, thiết kế Sơ đồ luồng dữ liệu DFD Mức 0, 1, 2, Sơ đồ Use Case (1-include 1-extend), 16 Đặc tả Use Case &amp; Deployment Diagram.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thành viên 2: Phạm Tấn Tài -->
+        <div class="col-md-5">
+            <div class="card h-100 border-0 shadow-sm rounded-4 text-center p-4">
+                <div class="position-relative d-inline-block mx-auto mb-3">
+                    <img src="/images/pham_tan_tai.jpg" alt="Phạm Tấn Tài" class="rounded-circle shadow" style="width: 160px; height: 160px; object-fit: cover; border: 4px solid #0891b2;" />
+                    <span class="position-absolute bottom-0 end-0 bg-info text-white rounded-circle p-1.5 shadow" title="Thành viên">
+                        <i class="bi bi-check-circle-fill small"></i>
+                    </span>
+                </div>
+                <h4 class="fw-bold text-dark mb-1">Phạm Tấn Tài</h4>
+                <span class="badge bg-info-subtle text-info rounded-pill px-3 py-1.5 fw-semibold mb-3" style="color: #0891b2 !important;">Thành viên 2 • Developer</span>
+                
+                <div class="text-start bg-light p-3 rounded-3 border">
+                    <h6 class="fw-bold text-info mb-2" style="color: #0891b2 !important;"><i class="bi bi-cpu me-1"></i> Nhiệm vụ phụ trách:</h6>
+                    <ul class="small text-secondary mb-0 ps-3">
+                        <li class="mb-1"><strong>Lập trình Web:</strong> Module Kết nối bạn bè (Friendships), Gợi ý kết bạn &amp; Nhắn tin trò chuyện 1-1 real-time qua SignalR ChatHub; Lập trình Trang Admin Dashboard (Thống kê 4 chỉ số, Reset pass, Xóa user Cascade Clean, Duyệt PostReports &amp; BannedWords).</li>
+                        <li><strong>Biên soạn Báo cáo:</strong> Vẽ Sơ đồ Trạng thái (State Diagram), Sơ đồ Hoạt động Swimlane (Activity Diagram), Sơ đồ Thực thể ERD 9 bảng &amp; Sơ đồ Logic CSDL.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng phân công chuẩn HTML -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-dark text-white text-center py-3">
+            <h5 class="fw-bold mb-0 text-uppercase"><i class="bi bi-table me-2"></i>BẢNG PHÂN CÔNG NHIỆM VỤ DỰ ÁN</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped align-middle mb-0" style="font-size: 0.95rem;">
+                    <thead class="table-dark text-center">
+                        <tr>
+                            <th style="width: 18%;">Tên thành viên</th>
+                            <th style="width: 72%;">Nhiệm Vụ</th>
+                            <th style="width: 10%;">Mức Độ Hoàn Thành</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Lê Hoàng -->
+                        <tr>
+                            <td class="fw-bold text-center bg-light fs-6">Lê Hoàng</td>
+                            <td class="p-3">
+                                <div class="mb-2">
+                                    <strong class="text-primary">• Web:</strong> Thiết kế UI/UX giao diện Mạng Xã Hội Connectify (Newsfeed, Profile, Auth); Lập trình Module Bài viết, Đăng bài kèm ảnh (/uploads/posts/), Thả cảm xúc 6 loại (Like/Love/Haha...) &amp; Bình luận lồng nhau.
+                                </div>
+                                <div>
+                                    <strong class="text-success">• Báo cáo:</strong> Biên soạn báo cáo tổng hợp, thiết kế Sơ đồ luồng dữ liệu DFD Mức 0, 1, 2, Sơ đồ Use Case (1-include 1-extend), 16 Đặc tả Use Case &amp; Deployment Diagram.
+                                </div>
+                            </td>
+                            <td class="text-center fw-bold text-success fs-6">100%</td>
+                        </tr>
+
+                        <!-- Phạm Tấn Tài -->
+                        <tr>
+                            <td class="fw-bold text-center bg-light fs-6">Phạm Tấn Tài</td>
+                            <td class="p-3">
+                                <div class="mb-2">
+                                    <strong class="text-primary">• Web:</strong> Lập trình Module Kết nối bạn bè (Friendships), Gợi ý kết bạn &amp; Nhắn tin trò chuyện 1-1 real-time qua SignalR ChatHub; Lập trình Trang Admin Dashboard (Thống kê 4 chỉ số, Reset pass, Xóa user Cascade Clean, Duyệt PostReports &amp; BannedWords).
+                                </div>
+                                <div>
+                                    <strong class="text-success">• Báo cáo:</strong> Vẽ Sơ đồ Trạng thái (State Diagram), Sơ đồ Hoạt động Swimlane (Activity Diagram), Sơ đồ Thực thể ERD 9 bảng &amp; Sơ đồ Logic CSDL.
+                                </div>
+                            </td>
+                            <td class="text-center fw-bold text-success fs-6">100%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
