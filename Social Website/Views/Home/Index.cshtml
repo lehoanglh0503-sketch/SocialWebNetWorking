@@ -66,7 +66,7 @@
 
 <div class="row">
     <!-- Cột trái: Thông tin cá nhân thu gọn -->
-    <div class="col-md-3 mb-4">
+    <div class="col-12 col-md-4 col-lg-3 mb-4">
         <div class="card sidebar-sticky">
             <div class="card-body text-center py-4">
                 <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-lg shadow-sm mb-3" />
@@ -84,7 +84,7 @@
     </div>
 
     <!-- Cột giữa: Feed bài đăng -->
-    <div class="@(currentUser != null && currentUser.IsAdmin ? "col-md-9" : "col-md-6") mb-4">
+    <div class="@(currentUser != null && currentUser.IsAdmin ? "col-12 col-md-8 col-lg-9" : "col-12 col-md-8 col-lg-6") mb-4">
         <!-- Card viết bài mới -->
         <div class="card mb-4">
             <div class="card-body p-4">
@@ -239,7 +239,7 @@
                                 }) : "Thích";
                             }
                             
-                            <div class="w-50 position-relative reaction-button-container">
+                            <div class="flex-fill position-relative reaction-button-container">
                                 <button class="btn btn-link text-decoration-none fw-semibold py-1 w-100 btn-toggle-like @btnClass" data-post-id="@post.PostId" data-current-reaction="@(isLiked ? currentReaction : "")">
                                     <i class="bi @btnIcon me-1"></i><span>@btnText</span>
                                 </button>
@@ -257,7 +257,11 @@
                                 </div>
                             </div>
                             
-                            <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 w-50 hover-primary" onclick="$('#commentSection-@post.PostId').toggle();"><i class="bi bi-chat-dots me-1"></i>Bình luận</button>
+                            <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 flex-fill hover-primary" onclick="$('#commentSection-@post.PostId').toggle();"><i class="bi bi-chat-dots me-1"></i>Bình luận</button>
+
+                            <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 flex-fill hover-primary btn-share-post-trigger" data-post-id="@post.PostId" data-post-author="@post.User?.FullName" data-post-avatar="@post.User?.AvatarUrl" data-post-content="@(post.Content ?? "")" data-post-image="@(post.ImageUrl ?? "")">
+                                <i class="bi bi-share me-1"></i>Chia sẻ
+                            </button>
                         </div>
 
                         <!-- Comments Section -->
@@ -498,30 +502,32 @@
     <!-- Cột phải: Gợi ý kết bạn & Trò chuyện -->
     @if (currentUser != null && !currentUser.IsAdmin)
     {
-        <div class="col-md-3 mb-4">
+        <div class="col-12 col-lg-3 mb-4">
             <div class="sidebar-sticky d-flex flex-column gap-4">
                 @await Component.InvokeAsync("RecommendedUsers")
 
                 <!-- Hộp danh sách bạn bè để chat -->
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
-                        <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-chat-dots-fill me-2"></i>Danh sách bạn bè</h6>
+                    <div class="card-header bg-white border-0 pt-3.5 px-3.5 pb-2">
+                        <h6 class="fw-bold mb-0 text-primary d-flex align-items-center">
+                            <i class="bi bi-chat-dots-fill me-2"></i>Danh sách bạn bè
+                        </h6>
                     </div>
-                    <div class="card-body px-4 pb-4 pt-2">
-                        <div class="d-flex flex-column gap-3" id="chatFriendsList">
+                    <div class="card-body px-3.5 pb-3.5 pt-2">
+                        <div class="d-flex flex-column gap-2.5" id="chatFriendsList">
                             @if (ViewBag.Friends != null && ((IEnumerable<Social_Website.Models.User>)ViewBag.Friends).Any())
                             {
                                 foreach (var friend in (IEnumerable<Social_Website.Models.User>)ViewBag.Friends)
                                 {
-                                    <div class="d-flex align-items-center justify-content-between cursor-pointer btn-open-chat" data-friend-id="@friend.UserId" data-friend-name="@friend.FullName" data-friend-avatar="@friend.AvatarUrl">
-                                        <div class="d-flex align-items-center">
-                                            <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-sm me-2.5" />
-                                            <div>
-                                                <h6 class="fw-semibold mb-0 small text-truncate" style="max-width: 120px;">@friend.FullName</h6>
-                                                <span class="text-muted small" style="font-size: 0.7rem;">@@@friend.Username</span>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 py-1 cursor-pointer btn-open-chat border-bottom border-light last-border-0" data-friend-id="@friend.UserId" data-friend-name="@friend.FullName" data-friend-avatar="@friend.AvatarUrl">
+                                        <div class="d-flex align-items-center me-1 overflow-hidden flex-grow-1" style="min-width: 0;">
+                                            <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-sm me-2 flex-shrink-0" />
+                                            <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+                                                <h6 class="fw-semibold mb-0 small text-truncate" title="@friend.FullName">@friend.FullName</h6>
+                                                <span class="text-muted small text-truncate d-block" style="font-size: 0.72rem;">@@@friend.Username</span>
                                             </div>
                                         </div>
-                                        <button class="btn btn-light btn-sm rounded-circle p-1 border-0" style="width: 28px; height: 28px;">
+                                        <button class="btn btn-light btn-sm rounded-circle p-1 border-0 flex-shrink-0 d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
                                             <i class="bi bi-chat-fill text-primary" style="font-size: 0.85rem;"></i>
                                         </button>
                                     </div>
@@ -605,8 +611,49 @@
     </div>
 </div>
 
+<!-- Modal Chia sẻ bài viết qua tin nhắn -->
+<div class="modal fade" id="sharePostModal" tabindex="-1" aria-labelledby="sharePostModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-2 pt-4 px-4 shadow-sm">
+                <h6 class="modal-title fw-bold text-primary" id="sharePostModalLabel"><i class="bi bi-share-fill me-2"></i>Chia sẻ bài viết qua tin nhắn</h6>
+                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="sharePostId" />
+                <!-- Xem trước bài viết được chia sẻ -->
+                <div class="card bg-light border mb-3 rounded-3 p-3" id="sharePostPreview">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="" id="sharePostAuthorAvatar" class="avatar avatar-sm me-2 rounded-circle" style="width: 32px; height: 32px;" />
+                        <div>
+                            <div class="fw-bold small text-dark" id="sharePostAuthorName">Tác giả</div>
+                            <div class="text-muted extra-small" style="font-size: 0.7rem;">Bài viết chia sẻ</div>
+                        </div>
+                    </div>
+                    <p class="card-text small text-dark mb-2" id="sharePostSnippet" style="white-space: pre-wrap; max-height: 80px; overflow: hidden; text-overflow: ellipsis;"></p>
+                    <div id="sharePostImageWrapper" class="d-none text-center">
+                        <img src="" id="sharePostImagePreview" class="img-fluid rounded" style="max-height: 140px; object-fit: cover;" />
+                    </div>
+                </div>
+
+                <!-- Ô nhập lời nhắn -->
+                <div class="mb-3">
+                    <label for="shareCustomMessage" class="form-label small fw-semibold">Lời nhắn kèm theo (tùy chọn):</label>
+                    <textarea id="shareCustomMessage" class="form-control form-control-sm" rows="2" placeholder="Hãy xem bài viết này nè..."></textarea>
+                </div>
+
+                <!-- Danh sách bạn bè để chia sẻ -->
+                <label class="form-label small fw-semibold">Gửi cho bạn bè:</label>
+                <div id="shareFriendsList" class="d-flex flex-column gap-2" style="max-height: 220px; overflow-y: auto;">
+                    <div class="text-center py-3 text-muted small"><span class="spinner-border spinner-border-sm me-1"></span> Đang tải bạn bè...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Hộp thoại Chat nổi -->
-<div id="chatBox" class="card position-fixed border-0 shadow-lg d-none animate-fade-in-up" style="bottom: 0; right: 80px; width: 330px; z-index: 1040; border-radius: 16px 16px 0 0; transition: all 0.3s ease;">
+<div id="chatBox" class="card position-fixed border-0 shadow-lg d-none animate-fade-in-up" style="bottom: 0; right: 80px; width: 340px; z-index: 1040; border-radius: 16px 16px 0 0; transition: all 0.3s ease;">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3" style="border-top-left-radius: 16px; border-top-right-radius: 16px; cursor: pointer;" onclick="toggleMinimizeChat()">
         <div class="d-flex align-items-center">
             <img src="" id="chatFriendAvatar" class="avatar avatar-sm me-2 border border-white" style="width: 30px; height: 30px;" />
@@ -625,10 +672,18 @@
             <!-- Tin nhắn hiển thị ở đây -->
         </div>
         <div class="card-footer bg-white border-top p-2">
+            <div id="chatImagePreviewContainer" class="d-none mb-2 position-relative d-inline-block">
+                <img id="chatImagePreview" src="" class="img-thumbnail rounded shadow-sm" style="max-height: 80px; max-width: 120px; object-fit: cover;" />
+                <button type="button" id="btnRemoveChatImage" class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 p-0 shadow" style="width: 22px; height: 22px; line-height: 1; transform: translate(30%, -30%);">&times;</button>
+            </div>
             <form id="chatForm">
                 <input type="hidden" id="chatFriendId" />
+                <input type="file" id="chatImageInput" accept="image/*" class="d-none" />
                 <div class="input-group">
-                    <input type="text" id="chatInput" class="form-control form-control-sm form-control-modern" placeholder="Nhập tin nhắn..." autocomplete="off" required style="border-radius: 20px 0 0 20px;" />
+                    <label for="chatImageInput" class="btn btn-light btn-sm border text-primary d-flex align-items-center justify-content-center px-2 cursor-pointer" title="Gửi hình ảnh" style="border-radius: 20px 0 0 20px;">
+                        <i class="bi bi-image fs-6"></i>
+                    </label>
+                    <input type="text" id="chatInput" class="form-control form-control-sm form-control-modern" placeholder="Nhập tin nhắn..." autocomplete="off" style="border-radius: 0;" />
                     <button type="submit" class="btn btn-primary btn-sm px-3" style="border-radius: 0 20px 20px 0;"><i class="bi bi-send-fill"></i></button>
                 </div>
             </form>
@@ -1422,6 +1477,57 @@
                 });
             });
 
+            function renderSingleChatMessage(msg, isOwn, friendAvatar) {
+                let bodyHtml = '';
+                
+                // 1. Text content
+                if (msg.content) {
+                    bodyHtml += `<div>${msg.content}</div>`;
+                }
+
+                // 2. Chat image
+                if (msg.imageUrl) {
+                    bodyHtml += `<div class="mt-1"><img src="${msg.imageUrl}" class="img-fluid rounded border shadow-sm cursor-pointer" style="max-height: 180px; width: 100%; object-fit: cover;" onclick="window.open('${msg.imageUrl}')" /></div>`;
+                }
+
+                // 3. Shared post card
+                if (msg.sharedPost) {
+                    const postContent = msg.sharedPost.content ? msg.sharedPost.content.replace(/"/g, '&quot;') : '';
+                    bodyHtml += `
+                        <div class="card border border-primary-subtle shadow-sm my-1 text-dark text-start overflow-hidden rounded-3 cursor-pointer" onclick="scrollToPost(${msg.sharedPost.postId})" style="background-color: #f8f9fa;">
+                            <div class="card-body p-2">
+                                <div class="d-flex align-items-center mb-1">
+                                    <img src="${msg.sharedPost.authorAvatar || '/images/default-avatar.png'}" class="avatar avatar-xs rounded-circle me-1" style="width: 22px; height: 22px;" />
+                                    <span class="fw-bold extra-small text-dark me-1">${msg.sharedPost.authorName}</span>
+                                    <span class="badge bg-secondary-subtle text-secondary extra-small" style="font-size: 0.65rem;">Bài viết</span>
+                                </div>
+                                ${postContent ? `<p class="mb-1 text-secondary small text-truncate" style="max-height: 40px; font-size: 0.78rem;">${postContent}</p>` : ''}
+                                ${msg.sharedPost.imageUrl ? `<img src="${msg.sharedPost.imageUrl}" class="img-fluid rounded mt-1" style="max-height: 110px; width: 100%; object-fit: cover;" />` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (isOwn) {
+                    return `
+                        <div class="d-flex align-items-start justify-content-end">
+                            <div class="p-2 bg-primary text-white rounded shadow-sm small" style="max-width: 80%; word-break: break-word;">
+                                ${bodyHtml}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="d-flex align-items-start gap-2">
+                            <img src="${friendAvatar}" class="avatar avatar-sm rounded-circle" style="width: 24px; height: 24px;" />
+                            <div class="p-2 bg-white rounded shadow-sm text-dark small" style="max-width: 80%; word-break: break-word;">
+                                ${bodyHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
             // 9. Nhận tin nhắn trực tiếp qua SignalR
             connection.on("ReceiveDirectMessage", function (message) {
                 const currentUserId = "@currentUser?.UserId";
@@ -1432,20 +1538,8 @@
                     (message.senderId == activeFriendId && message.receiverId == currentUserId)) {
                     
                     const isOwn = message.senderId == currentUserId;
-                    const messageHtml = isOwn ? `
-                        <div class="d-flex align-items-start justify-content-end">
-                            <div class="p-2 bg-primary text-white rounded shadow-sm small" style="max-width: 80%; word-break: break-word;">
-                                ${message.content}
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="d-flex align-items-start gap-2">
-                            <img src="${$("#chatFriendAvatar").attr('src')}" class="avatar avatar-sm rounded-circle" style="width: 24px; height: 24px;" />
-                            <div class="p-2 bg-white rounded shadow-sm text-dark small" style="max-width: 80%; word-break: break-word;">
-                                ${message.content}
-                            </div>
-                        </div>
-                    `;
+                    const friendAvatar = $("#chatFriendAvatar").attr('src');
+                    const messageHtml = renderSingleChatMessage(message, isOwn, friendAvatar);
                     
                     $("#chatMessageList").append(messageHtml);
                     scrollChatToBottom();
@@ -1459,7 +1553,26 @@
                 }
             });
 
-            // 10. Mở hộp chat khi click vào bạn bè
+            // 10. Xử lý xem trước ảnh chọn đính kèm chat
+            $("#chatImageInput").change(function () {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        $("#chatImagePreview").attr("src", e.target.result);
+                        $("#chatImagePreviewContainer").removeClass("d-none");
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            $("#btnRemoveChatImage").click(function () {
+                $("#chatImageInput").val("");
+                $("#chatImagePreview").attr("src", "");
+                $("#chatImagePreviewContainer").addClass("d-none");
+            });
+
+            // 11. Mở hộp chat khi click vào bạn bè
             $(document).on("click", ".btn-open-chat", function () {
                 const friendId = $(this).data("friend-id");
                 const friendName = $(this).data("friend-name");
@@ -1491,20 +1604,7 @@
                         } else {
                             res.messages.forEach(function (msg) {
                                 const isOwn = msg.senderId == currentUserId;
-                                const msgHtml = isOwn ? `
-                                    <div class="d-flex align-items-start justify-content-end">
-                                        <div class="p-2 bg-primary text-white rounded shadow-sm small" style="max-width: 80%; word-break: break-word;">
-                                            ${msg.content}
-                                        </div>
-                                    </div>
-                                ` : `
-                                    <div class="d-flex align-items-start gap-2">
-                                        <img src="${friendAvatar}" class="avatar avatar-sm rounded-circle" style="width: 24px; height: 24px;" />
-                                        <div class="p-2 bg-white rounded shadow-sm text-dark small" style="max-width: 80%; word-break: break-word;">
-                                            ${msg.content}
-                                        </div>
-                                    </div>
-                                `;
+                                const msgHtml = renderSingleChatMessage(msg, isOwn, friendAvatar);
                                 $("#chatMessageList").append(msgHtml);
                             });
                             scrollChatToBottom();
@@ -1515,20 +1615,114 @@
                 });
             });
 
-            // 11. Gửi tin nhắn qua form chat
+            // 12. Gửi tin nhắn qua form chat (Hỗ trợ Văn bản, Hình ảnh & SignalR)
             $("#chatForm").submit(function (e) {
                 e.preventDefault();
                 const friendId = $("#chatFriendId").val();
                 const content = $("#chatInput").val().trim();
+                const imageFile = $("#chatImageInput")[0].files[0];
                 
-                if (!content) return;
+                if (!content && !imageFile) return;
+
+                const formData = new FormData();
+                formData.append("receiverId", friendId);
+                if (content) formData.append("content", content);
+                if (imageFile) formData.append("image", imageFile);
                 
-                $("#chatInput").val(""); // Clear input ngay lập tức
+                // Reset form & preview ngay lập tức
+                $("#chatInput").val("");
+                $("#chatImageInput").val("");
+                $("#chatImagePreviewContainer").addClass("d-none");
                 
-                $.post("/Chat/SendMessage", { receiverId: friendId, content: content }, function (res) {
-                    if (!res.success) {
+                $.ajax({
+                    url: "/Chat/SendMessage",
+                    type: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (res) {
+                        if (!res.success) {
+                            alert(res.message);
+                        }
+                    }
+                });
+            });
+
+            // 13. Mở Modal Chia sẻ bài viết
+            $(document).on("click", ".btn-share-post-trigger", function (e) {
+                e.preventDefault();
+                const postId = $(this).data("post-id");
+                const author = $(this).data("post-author");
+                const avatar = $(this).data("post-avatar");
+                const content = $(this).data("post-content");
+                const image = $(this).data("post-image");
+
+                $("#sharePostId").val(postId);
+                $("#sharePostAuthorName").text(author);
+                $("#sharePostAuthorAvatar").attr("src", avatar);
+                $("#sharePostSnippet").text(content || "Hình ảnh bài viết");
+                $("#shareCustomMessage").val("");
+
+                if (image) {
+                    $("#sharePostImagePreview").attr("src", image);
+                    $("#sharePostImageWrapper").removeClass("d-none");
+                } else {
+                    $("#sharePostImageWrapper").addClass("d-none");
+                }
+
+                $("#shareFriendsList").html('<div class="text-center py-3 text-muted small"><span class="spinner-border spinner-border-sm me-1"></span> Đang tải bạn bè...</div>');
+                $("#sharePostModal").modal("show");
+
+                // Lấy danh sách bạn bè để chọn người nhận
+                $.get("/Chat/GetFriendsForShare", function (res) {
+                    if (res.success) {
+                        if (res.friends.length === 0) {
+                            $("#shareFriendsList").html('<div class="text-center text-muted small py-3">Bạn chưa có bạn bè để chia sẻ.</div>');
+                        } else {
+                            let friendsHtml = '';
+                            res.friends.forEach(function (f) {
+                                friendsHtml += `
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded hover-bg-light border-bottom">
+                                        <div class="d-flex align-items-center me-2">
+                                            <img src="${f.avatarUrl || '/images/default-avatar.png'}" class="avatar avatar-sm rounded-circle me-2" style="width: 32px; height: 32px;" />
+                                            <div>
+                                                <div class="fw-semibold small text-dark">${f.fullName}</div>
+                                                <div class="text-muted extra-small">@@${f.username}</div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-primary btn-sm px-3 btn-do-share" data-receiver-id="${f.userId}" style="border-radius: 16px;">
+                                            <i class="bi bi-send me-1"></i>Gửi
+                                        </button>
+                                    </div>
+                                `;
+                            });
+                            $("#shareFriendsList").html(friendsHtml);
+                        }
+                    } else {
+                        $("#shareFriendsList").html(`<div class="text-center text-danger small py-3">${res.message}</div>`);
+                    }
+                });
+            });
+
+            // 14. Bấm Gửi bài viết cho bạn bè trong Modal Chia sẻ
+            $(document).on("click", ".btn-do-share", function () {
+                const btn = $(this);
+                const receiverId = btn.data("receiver-id");
+                const postId = $("#sharePostId").val();
+                const customMessage = $("#shareCustomMessage").val().trim();
+
+                btn.prop("disabled", true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+                $.post("/Chat/SendMessage", { receiverId: receiverId, content: customMessage, sharedPostId: postId }, function (res) {
+                    if (res.success) {
+                        btn.removeClass("btn-primary").addClass("btn-success").html('<i class="bi bi-check-lg me-1"></i>Đã gửi');
+                    } else {
+                        btn.prop("disabled", false).html('<i class="bi bi-send me-1"></i>Gửi');
                         alert(res.message);
                     }
+                }).fail(function (xhr) {
+                    btn.prop("disabled", false).html('<i class="bi bi-send me-1"></i>Gửi');
+                    alert("Có lỗi xảy ra khi gửi tin nhắn. Vui lòng thử lại!");
                 });
             });
 
@@ -1540,7 +1734,20 @@
             }
         });
 
-        // Hàm điều khiển chat toàn cục
+        // Hàm điều khiển chat & cuộn bài viết toàn cục
+        function scrollToPost(postId) {
+            const postCard = $(`#postCard-${postId}`);
+            if (postCard.length > 0) {
+                $('html, body').animate({
+                    scrollTop: postCard.offset().top - 80
+                }, 400);
+                postCard.addClass("border-primary shadow-lg");
+                setTimeout(() => postCard.removeClass("border-primary shadow-lg"), 2500);
+            } else {
+                alert("Bài viết không có trong danh sách hiển thị hiện tại.");
+            }
+        }
+
         function closeChatBox() {
             $("#chatBox").addClass("d-none");
             $("#chatFriendId").val("");

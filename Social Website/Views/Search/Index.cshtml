@@ -1,0 +1,295 @@
+@model Social_Website.Models.SearchViewModel
+@{
+    ViewData["Title"] = string.IsNullOrEmpty(Model.Query) ? "Tìm kiếm" : $"Kết quả cho \"{Model.Query}\"";
+    Layout = "_Layout";
+    var currentUser = ViewBag.CurrentUser as Social_Website.Models.User;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-9 mb-4">
+        <!-- Header thông báo từ khóa -->
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <h4 class="fw-bold text-dark mb-1">
+                    <i class="bi bi-search text-primary me-2"></i>
+                    @if (!string.IsNullOrEmpty(Model.Query))
+                    {
+                        <span>Kết quả tìm kiếm cho "<span class="text-primary">@Model.Query</span>"</span>
+                    }
+                    else
+                    {
+                        <span>Tìm kiếm trên Connectify</span>
+                    }
+                </h4>
+                <p class="text-muted small mb-0">Tìm kiếm bạn bè, người dùng và các bài viết có nội dung liên quan.</p>
+            </div>
+        </div>
+
+        @if (string.IsNullOrEmpty(Model.Query))
+        {
+            <div class="card border-0 shadow-sm text-center py-5" style="border-radius: 16px;">
+                <div class="card-body">
+                    <i class="bi bi-search display-1 text-muted opacity-50 mb-3"></i>
+                    <h5 class="fw-bold text-dark">Hãy nhập từ khóa tìm kiếm</h5>
+                    <p class="text-muted small">Gõ tên người dùng hoặc nội dung bài viết vào ô tìm kiếm ở phía trên.</p>
+                </div>
+            </div>
+        }
+        else if (Model.Users.Count == 0 && Model.Posts.Count == 0)
+        {
+            <div class="card border-0 shadow-sm text-center py-5" style="border-radius: 16px;">
+                <div class="card-body">
+                    <i class="bi bi-emoji-frown display-1 text-muted opacity-50 mb-3"></i>
+                    <h5 class="fw-bold text-dark">Không tìm thấy kết quả phù hợp</h5>
+                    <p class="text-muted small">Thử tìm kiếm với từ khóa khác hoặc kiểm tra lại chính tả.</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Tabs điều hướng kết quả -->
+            <ul class="nav nav-pills mb-4 gap-2 border-bottom pb-3" id="searchTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill px-4 fw-semibold" id="all-tab" data-bs-toggle="tab" data-bs-target="#allTabContent" type="button" role="tab">
+                        <i class="bi bi-grid-fill me-1.5"></i>Tất cả (@(Model.Users.Count + Model.Posts.Count))
+                    </button>
+                </li>
+                @if (Model.Users.Count > 0)
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-pill px-4 fw-semibold" id="users-tab" data-bs-toggle="tab" data-bs-target="#usersTabContent" type="button" role="tab">
+                            <i class="bi bi-people-fill me-1.5"></i>Mọi người (@Model.Users.Count)
+                        </button>
+                    </li>
+                }
+                @if (Model.Posts.Count > 0)
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-pill px-4 fw-semibold" id="posts-tab" data-bs-toggle="tab" data-bs-target="#postsTabContent" type="button" role="tab">
+                            <i class="bi bi-file-post-fill me-1.5"></i>Bài viết (@Model.Posts.Count)
+                        </button>
+                    </li>
+                }
+            </ul>
+
+            <div class="tab-content" id="searchTabsContent">
+                <!-- Tab Tất cả -->
+                <div class="tab-pane fade show active" id="allTabContent" role="tabpanel">
+                    @if (Model.Users.Count > 0)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0"><i class="bi bi-people me-2 text-primary"></i>Mọi người</h5>
+                        </div>
+                        <div class="row row-cols-1 row-cols-md-2 g-3 mb-4">
+                            @foreach (var user in Model.Users.Take(6))
+                            {
+                                <div class="col">
+                                    <div class="card border-0 shadow-sm h-100 rounded-3 p-3 d-flex flex-row align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center overflow-hidden me-2">
+                                            <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-md rounded-circle me-3 shadow-sm" style="width: 48px; height: 48px; object-fit: cover;" />
+                                            <div class="overflow-hidden">
+                                                <h6 class="fw-bold text-dark mb-0 text-truncate">@user.FullName</h6>
+                                                <span class="text-muted small">@@@user.Username</span>
+                                            </div>
+                                        </div>
+                                        <div class="friend-action-wrapper" id="friendAction-@user.UserId">
+                                            @if (user.FriendshipStatus == "Friends")
+                                            {
+                                                <button class="btn btn-outline-secondary btn-sm rounded-pill btn-remove-friend-action" data-user-id="@user.UserId">
+                                                    <i class="bi bi-person-check-fill me-1"></i>Bạn bè
+                                                </button>
+                                            }
+                                            else if (user.FriendshipStatus == "PendingSent")
+                                            {
+                                                <button class="btn btn-secondary btn-sm rounded-pill btn-remove-friend-action" data-user-id="@user.UserId">
+                                                    <i class="bi bi-person-dash me-1"></i>Hủy lời mời
+                                                </button>
+                                            }
+                                            else if (user.FriendshipStatus == "PendingReceived")
+                                            {
+                                                <button class="btn btn-success btn-sm rounded-pill btn-accept-friend-action" data-user-id="@user.UserId">
+                                                    <i class="bi bi-person-plus-fill me-1"></i>Chấp nhận
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-primary btn-sm rounded-pill btn-add-friend-action" data-user-id="@user.UserId">
+                                                    <i class="bi bi-person-plus-fill me-1"></i>Thêm bạn
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (Model.Posts.Count > 0)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0"><i class="bi bi-file-post me-2 text-primary"></i>Bài viết liên quan</h5>
+                        </div>
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var post in Model.Posts)
+                            {
+                                <div class="card border-0 shadow-sm rounded-3 p-3 mb-2" id="postCard-@post.PostId">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <img src="@post.User?.AvatarUrl" class="avatar avatar-sm rounded-circle me-2" style="width: 36px; height: 36px;" />
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0">@post.User?.FullName</h6>
+                                            <span class="text-muted extra-small">@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(post.Content))
+                                    {
+                                        <p class="card-text mb-2" style="white-space: pre-wrap;">@post.Content</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(post.ImageUrl))
+                                    {
+                                        <div class="text-center mb-2">
+                                            <img src="@post.ImageUrl" class="img-fluid rounded shadow-sm" style="max-height: 350px; width: auto;" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Tab Mọi người -->
+                @if (Model.Users.Count > 0)
+                {
+                    <div class="tab-pane fade" id="usersTabContent" role="tabpanel">
+                        <div class="row row-cols-1 row-cols-md-2 g-3">
+                            @foreach (var user in Model.Users)
+                            {
+                                <div class="col">
+                                    <div class="card border-0 shadow-sm h-100 rounded-3 p-3 d-flex flex-row align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center overflow-hidden me-2">
+                                            <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-md rounded-circle me-3 shadow-sm" style="width: 48px; height: 48px; object-fit: cover;" />
+                                            <div class="overflow-hidden">
+                                                <h6 class="fw-bold text-dark mb-0 text-truncate">@user.FullName</h6>
+                                                <span class="text-muted small">@@@user.Username</span>
+                                            </div>
+                                        </div>
+                                        <div class="friend-action-wrapper" id="tabFriendAction-@user.UserId">
+                                            @if (user.FriendshipStatus == "Friends")
+                                            {
+                                                <button class="btn btn-outline-secondary btn-sm rounded-pill btn-remove-friend-action" data-user-id="@user.UserId">
+                                                    <i class="bi bi-person-check-fill me-1"></i>Bạn bè
+                                                </button>
+                                            }
+                                            else if (user.FriendshipStatus == "PendingSent")
+                                            {
+                                                <button class="btn btn-secondary btn-sm rounded-pill btn-remove-friend-action" data-user-id="@user.UserId">
+                                                    <i class="bi bi-person-dash me-1"></i>Hủy lời mời
+                                                </button>
+                                            }
+                                            else if (user.FriendshipStatus == "PendingReceived")
+                                            {
+                                                <button class="btn btn-success btn-sm rounded-pill btn-accept-friend-action" data-user-id="@user.UserId">
+                                                    <i class="bi bi-person-plus-fill me-1"></i>Chấp nhận
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-primary btn-sm rounded-pill btn-add-friend-action" data-user-id="@user.UserId">
+                                                    <i class="bi bi-person-plus-fill me-1"></i>Thêm bạn
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Tab Bài viết -->
+                @if (Model.Posts.Count > 0)
+                {
+                    <div class="tab-pane fade" id="postsTabContent" role="tabpanel">
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var post in Model.Posts)
+                            {
+                                <div class="card border-0 shadow-sm rounded-3 p-3" id="postTabCard-@post.PostId">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <img src="@post.User?.AvatarUrl" class="avatar avatar-sm rounded-circle me-2" style="width: 36px; height: 36px;" />
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0">@post.User?.FullName</h6>
+                                            <span class="text-muted extra-small">@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(post.Content))
+                                    {
+                                        <p class="card-text mb-2" style="white-space: pre-wrap;">@post.Content</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(post.ImageUrl))
+                                    {
+                                        <div class="text-center mb-2">
+                                            <img src="@post.ImageUrl" class="img-fluid rounded shadow-sm" style="max-height: 350px; width: auto;" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Thêm bạn bè
+            $(document).on("click", ".btn-add-friend-action", function () {
+                const btn = $(this);
+                const userId = btn.data("user-id");
+                btn.prop("disabled", true);
+
+                $.post("/Friend/SendRequest", { receiverId: userId }, function (res) {
+                    if (res.success) {
+                        btn.removeClass("btn-primary").addClass("btn-secondary").html('<i class="bi bi-person-dash me-1"></i>Hủy lời mời').removeClass("btn-add-friend-action").addClass("btn-remove-friend-action");
+                    } else {
+                        alert(res.message);
+                    }
+                    btn.prop("disabled", false);
+                });
+            });
+
+            // Chấp nhận kết bạn
+            $(document).on("click", ".btn-accept-friend-action", function () {
+                const btn = $(this);
+                const userId = btn.data("user-id");
+                btn.prop("disabled", true);
+
+                $.post("/Friend/AcceptRequest", { requestorId: userId }, function (res) {
+                    if (res.success) {
+                        btn.removeClass("btn-success").addClass("btn-outline-secondary").html('<i class="bi bi-person-check-fill me-1"></i>Bạn bè').removeClass("btn-accept-friend-action").addClass("btn-remove-friend-action");
+                    } else {
+                        alert(res.message);
+                    }
+                    btn.prop("disabled", false);
+                });
+            });
+
+            // Hủy bạn bè / Hủy lời mời
+            $(document).on("click", ".btn-remove-friend-action", function () {
+                const btn = $(this);
+                const userId = btn.data("user-id");
+                btn.prop("disabled", true);
+
+                $.post("/Friend/RemoveFriend", { friendId: userId }, function (res) {
+                    if (res.success) {
+                        btn.removeClass("btn-outline-secondary btn-secondary").addClass("btn-primary").html('<i class="bi bi-person-plus-fill me-1"></i>Thêm bạn').removeClass("btn-remove-friend-action").addClass("btn-add-friend-action");
+                    } else {
+                        alert(res.message);
+                    }
+                    btn.prop("disabled", false);
+                });
+            });
+        });
+    </script>
+}

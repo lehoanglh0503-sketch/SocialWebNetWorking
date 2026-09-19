@@ -44,6 +44,12 @@ namespace Social_Website.Models
                 .HasForeignKey(m => m.ReceiverId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.SharedPost)
+                .WithMany()
+                .HasForeignKey(m => m.SharedPostId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.User)
                 .WithMany(u => u.Comments)

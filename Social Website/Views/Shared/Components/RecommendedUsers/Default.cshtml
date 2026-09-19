@@ -1,25 +1,27 @@
 @model IEnumerable<Social_Website.Models.User>
 
-<div class="card">
-    <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
-        <h6 class="fw-bold mb-0 text-primary">Gợi ý kết bạn</h6>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 pt-3.5 px-3.5 pb-2">
+        <h6 class="fw-bold mb-0 text-primary d-flex align-items-center">
+            <i class="bi bi-person-plus-fill me-2"></i>Gợi ý kết bạn
+        </h6>
     </div>
-    <div class="card-body px-4 pb-4 pt-2">
-        <div class="d-flex flex-column gap-3">
+    <div class="card-body px-3.5 pb-3.5 pt-2">
+        <div class="d-flex flex-column gap-2.5">
             @if (Model != null && Model.Any())
             {
                 foreach (var user in Model)
                 {
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-sm me-2.5" />
-                            <div>
-                                <h6 class="fw-semibold mb-0 small text-truncate" style="max-width: 100px;">@user.FullName</h6>
-                                <span class="text-muted small" style="font-size: 0.75rem;">@@@user.Username</span>
+                    <div class="d-flex align-items-center justify-content-between gap-2 py-1 border-bottom border-light last-border-0">
+                        <div class="d-flex align-items-center me-1 overflow-hidden flex-grow-1" style="min-width: 0;">
+                            <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-sm me-2 flex-shrink-0" />
+                            <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+                                <h6 class="fw-semibold mb-0 small text-truncate" title="@user.FullName">@user.FullName</h6>
+                                <span class="text-muted small text-truncate d-block" style="font-size: 0.72rem;">@@@user.Username</span>
                             </div>
                         </div>
-                        <button class="btn btn-primary btn-sm py-1 px-3 btn-add-friend" data-user-id="@user.UserId" style="font-size: 0.8rem;">
-                            <i class="bi bi-person-plus-fill me-1"></i>Thêm
+                        <button class="btn btn-primary btn-sm py-1 px-2.5 btn-add-friend flex-shrink-0 d-inline-flex align-items-center justify-content-center" data-user-id="@user.UserId" style="font-size: 0.78rem; white-space: nowrap; word-break: keep-all;">
+                            <i class="bi bi-person-plus-fill me-1"></i><span>Thêm</span>
                         </button>
                     </div>
                 }
@@ -31,3 +33,4 @@
         </div>
     </div>
 </div>
+

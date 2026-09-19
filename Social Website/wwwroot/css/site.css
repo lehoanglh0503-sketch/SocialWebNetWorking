@@ -299,3 +299,88 @@ body {
 .table th, .table td {
     vertical-align: middle;
 }
+
+/* Helper utilities */
+.last-border-0:last-child {
+    border-bottom: 0 !important;
+}
+
+.btn-add-friend {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Responsive adjustments for mobile and tablets */
+@media (max-width: 991.98px) {
+    .sidebar-sticky {
+        position: static !important;
+        top: 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .container {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    .card-body {
+        padding: 0.9rem !important;
+    }
+
+    #chatBox {
+        width: 100% !important;
+        right: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        height: 85vh !important;
+        border-radius: 20px 20px 0 0 !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    #chatBox .card-header {
+        border-radius: 20px 20px 0 0 !important;
+    }
+
+    #chatBox #chatMessages {
+        height: calc(85vh - 135px) !important;
+    }
+
+    .reactions-flyout {
+        max-width: 90vw !important;
+        padding: 0.35rem 0.5rem !important;
+    }
+
+    .reaction-emoji-item {
+        font-size: 1.5rem !important;
+    }
+
+    .btn-toggle-like, .btn-share-post-trigger, .btn-comment-action {
+        font-size: 0.78rem !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+        white-space: nowrap !important;
+    }
+
+    .navbar form[action="/Search"] {
+        max-width: 100% !important;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+}

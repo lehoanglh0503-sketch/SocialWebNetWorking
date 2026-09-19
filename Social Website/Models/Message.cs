@@ -13,8 +13,12 @@ namespace Social_Website.Models
         public long ReceiverId { get; set; }
         public User? Receiver { get; set; }
 
-        [Required(ErrorMessage = "Nội dung tin nhắn không được rỗng")]
-        public string Content { get; set; } = string.Empty;
+        public string? Content { get; set; }
+        
+        public string? ImageUrl { get; set; }
+
+        public long? SharedPostId { get; set; }
+        public Post? SharedPost { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }

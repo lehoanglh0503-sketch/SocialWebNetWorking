@@ -19,17 +19,23 @@
         var isAdmin = Context.Session.GetString("IsAdmin");
     }
     <header class="sticky-top">
-        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-4">
+        <nav class="navbar navbar-expand-md navbar-light bg-white border-bottom box-shadow mb-4">
             <div class="container">
-                <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="@(isAdmin == "True" ? "Admin" : "Home")" asp-action="Index">
                     <i class="bi bi-share-fill me-2"></i>Connectify
+                    @if (isAdmin == "True")
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-2 px-2 py-1" style="font-size: 0.72rem !important; border-radius: 8px;">
+                            <i class="bi bi-shield-lock-fill me-1"></i>Admin
+                        </span>
+                    }
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div class="navbar-collapse collapse d-md-inline-flex justify-content-between">
+                    <ul class="navbar-nav me-auto mb-2 mb-md-0">
                         @if (userId != null)
                         {
                             @if (isAdmin != "True")
@@ -39,47 +45,70 @@
                                         <i class="bi bi-house-door me-1"></i>Trang chủ
                                     </a>
                                 </li>
-                            }
-                            @if (isAdmin != "True")
-                            {
                                 <li class="nav-item">
                                     <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Friend" asp-action="Index">
                                         <i class="bi bi-people me-1"></i>Bạn bè
                                     </a>
                                 </li>
                             }
-                            @if (isAdmin == "True")
+                            else
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-danger fw-semibold" asp-area="" asp-controller="Admin" asp-action="Index">
-                                        <i class="bi bi-shield-lock-fill me-1"></i>Quản trị
+                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Admin" asp-action="Index">
+                                        <i class="bi bi-flag-fill text-danger me-1"></i>Báo cáo & Thống kê
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Admin" asp-action="Users">
+                                        <i class="bi bi-people-fill me-1"></i>Quản lý người dùng
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Admin" asp-action="BannedWords">
+                                        <i class="bi bi-shield-slash-fill me-1"></i>Từ cấm
                                     </a>
                                 </li>
                             }
                         }
                     </ul>
+                    @if (userId != null && isAdmin != "True")
+                    {
+                        <form class="d-flex me-sm-3 my-2 my-sm-0" action="/Search" method="get" style="max-width: 260px; width: 100%;">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0 text-muted" style="border-radius: 20px 0 0 20px;">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" name="q" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm kiếm..." value="@Context.Request.Query["q"]" autocomplete="off" style="border-radius: 0 20px 20px 0; font-size: 0.85rem;" />
+                            </div>
+                        </form>
+                    }
                     <div class="d-flex align-items-center">
                         @if (userId != null)
                         {
-                            <div class="dropdown">
-                                <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle px-2 py-1 rounded-pill hover-bg-light" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@avatarUrl" alt="@fullName" class="avatar avatar-sm me-2 rounded-circle shadow-sm border border-2 border-white" />
-                                    <span class="fw-semibold me-1">@fullName</span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 mt-2 dropdown-user-menu animate-fade-in-up" aria-labelledby="dropdownUser" style="min-width: 250px;">
-                                    <li class="px-3 py-2.5 bg-light rounded-3 mb-2 d-flex align-items-center">
-                                        <img src="@avatarUrl" alt="@fullName" class="avatar rounded-circle me-2.5 shadow-sm border border-2 border-white" style="width: 40px; height: 40px;" />
-                                        <div class="overflow-hidden">
-                                            <div class="fw-bold text-dark text-truncate" style="max-width: 150px; font-size: 0.95rem;">@fullName</div>
-                                            <div class="text-muted small text-truncate" style="font-size: 0.8rem;">@@@username</div>
-                                        </div>
-                                        @if (isAdmin == "True")
-                                        {
-                                            <span class="badge bg-danger text-white rounded-pill ms-auto px-2 py-1 small" style="font-size: 0.68rem;">Admin</span>
-                                        }
-                                    </li>
-                                    @if (isAdmin != "True")
-                                    {
+                            if (isAdmin == "True")
+                            {
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="fw-bold text-dark small"><i class="bi bi-person-fill text-danger me-1"></i>@fullName</span>
+                                    <a class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center" asp-controller="Auth" asp-action="Logout">
+                                        <i class="bi bi-box-arrow-right me-1"></i>Đăng xuất
+                                    </a>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="dropdown">
+                                    <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle px-2 py-1 rounded-pill hover-bg-light" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <img src="@avatarUrl" alt="@fullName" class="avatar avatar-sm me-2 rounded-circle shadow-sm border border-2 border-white" />
+                                        <span class="fw-semibold me-1">@fullName</span>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 mt-2 dropdown-user-menu animate-fade-in-up" aria-labelledby="dropdownUser" style="min-width: 250px;">
+                                        <li class="px-3 py-2.5 bg-light rounded-3 mb-2 d-flex align-items-center">
+                                            <img src="@avatarUrl" alt="@fullName" class="avatar rounded-circle me-2.5 shadow-sm border border-2 border-white" style="width: 40px; height: 40px;" />
+                                            <div class="overflow-hidden">
+                                                <div class="fw-bold text-dark text-truncate" style="max-width: 150px; font-size: 0.95rem;">@fullName</div>
+                                                <div class="text-muted small text-truncate" style="font-size: 0.8rem;">@@@username</div>
+                                            </div>
+                                        </li>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center py-2 px-3 rounded-3 fw-medium text-dark hover-primary-item" asp-controller="Profile" asp-action="Index">
                                                 <div class="icon-shape me-2.5 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 1rem;">
@@ -88,29 +117,18 @@
                                                 <span>Trang cá nhân</span>
                                             </a>
                                         </li>
-                                    }
-                                    @if (isAdmin == "True")
-                                    {
+                                        <li><hr class="dropdown-divider my-2 border-light"></li>
                                         <li>
-                                            <a class="dropdown-item d-flex align-items-center py-2 px-3 rounded-3 fw-medium text-danger hover-danger-item" asp-controller="Admin" asp-action="Index">
+                                            <a class="dropdown-item d-flex align-items-center py-2 px-3 rounded-3 fw-medium text-danger hover-danger-item" asp-controller="Auth" asp-action="Logout">
                                                 <div class="icon-shape me-2.5 rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 1rem;">
-                                                    <i class="bi bi-shield-lock-fill"></i>
+                                                    <i class="bi bi-box-arrow-right"></i>
                                                 </div>
-                                                <span>Trang quản trị</span>
+                                                <span>Đăng xuất</span>
                                             </a>
                                         </li>
-                                    }
-                                    <li><hr class="dropdown-divider my-2 border-light"></li>
-                                    <li>
-                                        <a class="dropdown-item d-flex align-items-center py-2 px-3 rounded-3 fw-medium text-danger hover-danger-item" asp-controller="Auth" asp-action="Logout">
-                                            <div class="icon-shape me-2.5 rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 1rem;">
-                                                <i class="bi bi-box-arrow-right"></i>
-                                            </div>
-                                            <span>Đăng xuất</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
+                                    </ul>
+                                </div>
+                            }
                         }
                         else
                         {
