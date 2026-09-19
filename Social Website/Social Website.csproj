@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Social_Website</RootNamespace>
+    <AssemblyName>SocialWebsite</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
