@@ -384,3 +384,20 @@ body {
         margin-bottom: 0.5rem;
     }
 }
+
+/* Text Truncate Fix for Vietnamese & Small Containers */
+.text-truncate {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+}
+
+.btn-mobile-quick-chat {
+    box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-mobile-quick-chat:hover, .btn-mobile-quick-chat:active {
+    transform: scale(1.08);
+}

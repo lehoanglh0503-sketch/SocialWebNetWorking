@@ -66,7 +66,7 @@
 
 <div class="row">
     <!-- Cột trái: Thông tin cá nhân thu gọn -->
-    <div class="col-12 col-md-4 col-lg-3 mb-4">
+    <div class="col-12 col-md-4 col-lg-3 mb-4 order-1 order-lg-1">
         <div class="card sidebar-sticky">
             <div class="card-body text-center py-4">
                 <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-lg shadow-sm mb-3" />
@@ -84,7 +84,7 @@
     </div>
 
     <!-- Cột giữa: Feed bài đăng -->
-    <div class="@(currentUser != null && currentUser.IsAdmin ? "col-12 col-md-8 col-lg-9" : "col-12 col-md-8 col-lg-6") mb-4">
+    <div class="@(currentUser != null && currentUser.IsAdmin ? "col-12 col-md-8 col-lg-9 order-2 order-lg-2" : "col-12 col-md-12 col-lg-6 order-3 order-lg-2") mb-4">
         <!-- Card viết bài mới -->
         <div class="card mb-4">
             <div class="card-body p-4">
@@ -502,46 +502,56 @@
     <!-- Cột phải: Gợi ý kết bạn & Trò chuyện -->
     @if (currentUser != null && !currentUser.IsAdmin)
     {
-        <div class="col-12 col-lg-3 mb-4">
-            <div class="sidebar-sticky d-flex flex-column gap-4">
-                @await Component.InvokeAsync("RecommendedUsers")
-
-                <!-- Hộp danh sách bạn bè để chat -->
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white border-0 pt-3.5 px-3.5 pb-2">
-                        <h6 class="fw-bold mb-0 text-primary d-flex align-items-center">
-                            <i class="bi bi-chat-dots-fill me-2"></i>Danh sách bạn bè
-                        </h6>
+        <div class="col-12 col-md-12 col-lg-3 mb-4 order-2 order-lg-3" id="sidebarRightContainer">
+            <div class="sidebar-sticky">
+                <div class="row g-4">
+                    <div class="col-12 col-md-6 col-lg-12">
+                        @await Component.InvokeAsync("RecommendedUsers")
                     </div>
-                    <div class="card-body px-3.5 pb-3.5 pt-2">
-                        <div class="d-flex flex-column gap-2.5" id="chatFriendsList">
-                            @if (ViewBag.Friends != null && ((IEnumerable<Social_Website.Models.User>)ViewBag.Friends).Any())
-                            {
-                                foreach (var friend in (IEnumerable<Social_Website.Models.User>)ViewBag.Friends)
-                                {
-                                    <div class="d-flex align-items-center justify-content-between gap-2 py-1 cursor-pointer btn-open-chat border-bottom border-light last-border-0" data-friend-id="@friend.UserId" data-friend-name="@friend.FullName" data-friend-avatar="@friend.AvatarUrl">
-                                        <div class="d-flex align-items-center me-1 overflow-hidden flex-grow-1" style="min-width: 0;">
-                                            <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-sm me-2 flex-shrink-0" />
-                                            <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
-                                                <h6 class="fw-semibold mb-0 small text-truncate" title="@friend.FullName">@friend.FullName</h6>
-                                                <span class="text-muted small text-truncate d-block" style="font-size: 0.72rem;">@@@friend.Username</span>
+                    <div class="col-12 col-md-6 col-lg-12">
+                        <!-- Hộp danh sách bạn bè để chat -->
+                        <div class="card border-0 shadow-sm" id="friendsListCard">
+                            <div class="card-header bg-white border-0 pt-3.5 px-3.5 pb-2">
+                                <h6 class="fw-bold mb-0 text-primary d-flex align-items-center">
+                                    <i class="bi bi-chat-dots-fill me-2"></i>Danh sách bạn bè
+                                </h6>
+                            </div>
+                            <div class="card-body px-3.5 pb-3.5 pt-2">
+                                <div class="d-flex flex-column gap-2.5" id="chatFriendsList">
+                                    @if (ViewBag.Friends != null && ((IEnumerable<Social_Website.Models.User>)ViewBag.Friends).Any())
+                                    {
+                                        foreach (var friend in (IEnumerable<Social_Website.Models.User>)ViewBag.Friends)
+                                        {
+                                            <div class="d-flex align-items-center justify-content-between gap-2 py-1 cursor-pointer btn-open-chat border-bottom border-light last-border-0" data-friend-id="@friend.UserId" data-friend-name="@friend.FullName" data-friend-avatar="@friend.AvatarUrl">
+                                                <div class="d-flex align-items-center me-1 overflow-hidden flex-grow-1" style="min-width: 0;">
+                                                    <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-sm me-2 flex-shrink-0" />
+                                                    <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+                                                        <h6 class="fw-semibold mb-0 small text-truncate" title="@friend.FullName" style="white-space: nowrap !important; word-break: normal !important;">@friend.FullName</h6>
+                                                        <span class="text-muted small text-truncate d-block" style="font-size: 0.72rem; white-space: nowrap !important;">@@@friend.Username</span>
+                                                    </div>
+                                                </div>
+                                                <button class="btn btn-light btn-sm rounded-circle p-1 border-0 flex-shrink-0 d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                                    <i class="bi bi-chat-fill text-primary" style="font-size: 0.85rem;"></i>
+                                                </button>
                                             </div>
-                                        </div>
-                                        <button class="btn btn-light btn-sm rounded-circle p-1 border-0 flex-shrink-0 d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                                            <i class="bi bi-chat-fill text-primary" style="font-size: 0.85rem;"></i>
-                                        </button>
-                                    </div>
-                                }
-                            }
-                            else
-                            {
-                                <p class="text-muted small mb-0">Chưa có bạn bè nào. Hãy kết bạn để nhắn tin!</p>
-                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted small mb-0">Chưa có bạn bè nào. Hãy kết bạn để nhắn tin!</p>
+                                    }
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Nút Chat Nhanh dạng Nút Nổi trên Màn hình Điện thoại (Floating Mobile Chat Button) -->
+        <button type="button" class="btn btn-primary rounded-circle shadow-lg d-lg-none position-fixed btn-mobile-quick-chat" id="btnMobileQuickChat" title="Mở danh sách trò chuyện" style="bottom: 24px; right: 24px; width: 54px; height: 54px; z-index: 1040; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-chat-dots-fill fs-4"></i>
+        </button>
     }
 </div>
 
