@@ -76,7 +76,7 @@
                 <hr class="my-3" />
                 <div class="d-flex justify-content-around text-center">
                     <div>
-                        <span class="d-block fw-bold fs-5 text-primary">@currentUser?.Posts.Count</span>
+                        <span class="d-block fw-bold fs-5 text-primary user-post-count-badge">@currentUser?.Posts.Count</span>
                         <span class="text-muted small">Bài viết</span>
                     </div>
                 </div>
@@ -802,6 +802,14 @@
                     </div>
                 `;
                 $("#feedContainer").prepend(postHtml);
+
+                if (isOwnPost) {
+                    const countBadge = $('.user-post-count-badge');
+                    if (countBadge.length > 0) {
+                        let count = parseInt(countBadge.first().text()) || 0;
+                        countBadge.text(count + 1);
+                    }
+                }
             });
 
             // Nhận bình luận mới (hỗ trợ cả bình luận gốc và phản hồi bình luận)
@@ -1444,10 +1452,24 @@
             });
 
             // Nhận sự kiện xóa bài viết thời gian thực
-            connection.on("ReceiveDeletedPost", function (postId) {
-                $(`#postCard-${postId}`).fadeOut(350, function () {
-                    $(this).remove();
-                });
+            connection.on("ReceiveDeletedPost", function (postId, authorUserId) {
+                const card = $(`#postCard-${postId}`);
+                if (card.length > 0) {
+                    card.fadeOut(350, function () {
+                        $(this).remove();
+                    });
+                }
+
+                const currentUserId = "@currentUser?.UserId";
+                if (authorUserId && currentUserId && authorUserId.toString() === currentUserId.toString()) {
+                    const countBadge = $('.user-post-count-badge');
+                    if (countBadge.length > 0) {
+                        let count = parseInt(countBadge.first().text()) || 0;
+                        if (count > 0) {
+                            countBadge.text(count - 1);
+                        }
+                    }
+                }
             });
 
             // 6. Kích hoạt Modal Báo cáo bài viết

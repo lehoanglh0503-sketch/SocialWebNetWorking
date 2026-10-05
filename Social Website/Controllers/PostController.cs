@@ -517,7 +517,7 @@ namespace Social_Website.Controllers
             await _context.SaveChangesAsync();
 
             // Broadcast sự kiện xóa bài viết để các client khác cập nhật UI
-            await _hubContext.Clients.All.SendAsync("ReceiveDeletedPost", id);
+            await _hubContext.Clients.All.SendAsync("ReceiveDeletedPost", id, post.UserId);
 
             return Json(new { success = true, message = "Đã xóa bài viết thành công!" });
         }
