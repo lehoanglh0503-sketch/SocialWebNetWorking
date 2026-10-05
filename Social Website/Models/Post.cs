@@ -10,6 +10,7 @@ namespace Social_Website.Models
         public string? Content { get; set; }
         
         public string? ImageUrl { get; set; }
+        public string? VideoUrl { get; set; }
         
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
@@ -19,5 +20,6 @@ namespace Social_Website.Models
         
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public ICollection<PostLike> Likes { get; set; } = new List<PostLike>();
+        public ICollection<PostImage> Images { get; set; } = new List<PostImage>();
     }
 }

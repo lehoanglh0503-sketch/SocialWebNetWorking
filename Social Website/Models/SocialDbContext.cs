@@ -17,10 +17,29 @@ namespace Social_Website.Models
         public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
+        public DbSet<PostImage> PostImages => Set<PostImage>();
+        public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique()
+                .HasFilter("[Email] IS NOT NULL");
+
+            modelBuilder.Entity<PostImage>()
+                .HasOne(pi => pi.Post)
+                .WithMany(p => p.Images)
+                .HasForeignKey(pi => pi.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PasswordResetToken>()
+                .HasOne(prt => prt.User)
+                .WithMany()
+                .HasForeignKey(prt => prt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<SavedPost>()
                 .HasIndex(sp => new { sp.UserId, sp.PostId })

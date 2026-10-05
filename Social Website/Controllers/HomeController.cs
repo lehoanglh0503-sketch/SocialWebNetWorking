@@ -35,6 +35,7 @@ namespace Social_Website.Controllers
             var posts = await _context.Posts
                 .AsSplitQuery()
                 .Include(p => p.User)
+                .Include(p => p.Images)
                 .Include(p => p.Likes)
                 .Include(p => p.Comments)
                     .ThenInclude(c => c.User)

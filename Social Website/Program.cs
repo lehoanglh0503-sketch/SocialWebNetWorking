@@ -2,10 +2,22 @@ using Microsoft.EntityFrameworkCore;
 using Social_Website.Models;
 using Social_Website.Hubs;
 
+using Microsoft.AspNetCore.Http.Features;
+using Social_Website.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// 0. Register EmailSender
+builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+
+// Configure max request size for video uploads (35 MB)
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 35 * 1024 * 1024;
+});
 
 // 1. Đăng ký DbContext với SQL Server
 builder.Services.AddDbContext<SocialDbContext>(options =>

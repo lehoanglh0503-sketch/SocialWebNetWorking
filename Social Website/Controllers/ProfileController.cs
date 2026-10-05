@@ -42,6 +42,7 @@ namespace Social_Website.Controllers
 
             var posts = await _context.Posts
                 .Include(p => p.User)
+                .Include(p => p.Images)
                 .Include(p => p.Likes)
                 .Include(p => p.Comments).ThenInclude(c => c.User)
                 .Where(p => p.UserId == user.UserId)
@@ -121,6 +122,7 @@ namespace Social_Website.Controllers
 
             var posts = await _context.Posts
                 .Include(p => p.User)
+                .Include(p => p.Images)
                 .Include(p => p.Likes)
                 .Include(p => p.Comments).ThenInclude(c => c.User)
                 .Where(p => p.UserId == targetUser.UserId)
@@ -149,7 +151,7 @@ namespace Social_Website.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateProfile(string fullName, IFormFile? avatarFile)
+        public async Task<IActionResult> UpdateProfile(string fullName, string? email, IFormFile? avatarFile)
         {
             var currentUserId = this.GetCurrentUserId();
             if (currentUserId == null)
@@ -166,6 +168,23 @@ namespace Social_Website.Controllers
             if (user == null)
             {
                 return Json(new { success = false, message = "Không tìm thấy người dùng" });
+            }
+
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var emailNormalized = email.Trim().ToLower();
+                if (!System.Text.RegularExpressions.Regex.IsMatch(emailNormalized, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+                {
+                    return Json(new { success = false, message = "Địa chỉ email không hợp lệ" });
+                }
+
+                var isEmailTaken = await _context.Users.AnyAsync(u => u.UserId != user.UserId && u.Email != null && u.Email.ToLower() == emailNormalized);
+                if (isEmailTaken)
+                {
+                    return Json(new { success = false, message = "Email này đã được sử dụng bởi tài khoản khác" });
+                }
+
+                user.Email = emailNormalized;
             }
 
             user.FullName = fullName.Trim();

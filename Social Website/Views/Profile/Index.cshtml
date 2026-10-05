@@ -214,9 +214,17 @@
                     </div>
                 </div>
                 
-                <div class="mb-4">
+                <div class="mb-3">
                     <label for="fullNameInput" class="form-label fw-semibold text-muted small">Họ tên đầy đủ</label>
                     <input type="text" id="fullNameInput" name="fullName" class="form-control form-control-modern" value="@Model.User.FullName" required minlength="2" maxlength="100" />
+                </div>
+                
+                <div class="mb-4">
+                    <label for="emailInput" class="form-label fw-semibold text-muted small">Địa chỉ Email (Dùng để đặt lại mật khẩu)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white text-muted"><i class="bi bi-envelope"></i></span>
+                        <input type="email" id="emailInput" name="email" class="form-control form-control-modern border-start-0" value="@Model.User.Email" placeholder="Bổ sung địa chỉ email..." />
+                    </div>
                 </div>
                 
                 <button type="submit" class="btn btn-primary px-4" id="saveProfileBtn">

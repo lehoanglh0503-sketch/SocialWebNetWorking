@@ -106,11 +106,21 @@
                                 <div class="row g-2" id="postImagePreviewContainer"></div>
                             </div>
 
+                            <!-- Xem trước video được chọn (Tối đa 25MB) -->
+                            <div id="postVideoPreviewWrapper" class="d-none mt-2 mb-2 position-relative">
+                                <video id="postVideoPreview" controls class="w-100 rounded shadow-sm" style="max-height: 250px;"></video>
+                                <button type="button" class="btn btn-sm btn-dark position-absolute top-0 end-0 m-2 rounded-circle" id="btnRemoveVideoPreview" style="width: 24px; height: 24px; padding: 0; line-height: 1;" title="Xóa video">
+                                    <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </div>
+
                             <input type="file" id="postImageInput" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="d-none" />
+                            <input type="file" id="postVideoInput" accept="video/mp4,video/webm" class="d-none" />
 
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <div class="d-flex text-muted gap-3 small">
                                     <span class="cursor-pointer hover-primary" onclick="$('#postImageInput').click();"><i class="bi bi-image text-success me-1"></i>Ảnh</span>
+                                    <span class="cursor-pointer hover-primary" onclick="$('#postVideoInput').click();"><i class="bi bi-camera-reels text-danger me-1"></i>Video</span>
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-sm px-4">Đăng bài</button>
                             </div>
@@ -206,6 +216,16 @@
                                     }
                                 </div>
                             }
+                        }
+                        @if (!string.IsNullOrEmpty(post.VideoUrl))
+                        {
+                            <div class="post-video-container mb-3 text-center">
+                                <video controls preload="metadata" class="w-100 rounded shadow-sm" style="max-height: 500px;">
+                                    <source src="@post.VideoUrl" type="video/mp4">
+                                    <source src="@post.VideoUrl" type="video/webm">
+                                    Trình duyệt không hỗ trợ thẻ video HTML5.
+                                </video>
+                            </div>
                         }
 
                         <!-- Post Actions summary -->
@@ -839,6 +859,19 @@
                     }
                 }
 
+                let videoHtml = '';
+                if (post.videoUrl) {
+                    videoHtml = `
+                        <div class="post-video-container mb-3 text-center">
+                            <video controls preload="metadata" class="w-100 rounded shadow-sm" style="max-height: 500px;">
+                                <source src="${post.videoUrl}" type="video/mp4">
+                                <source src="${post.videoUrl}" type="video/webm">
+                                Trình duyệt không hỗ trợ thẻ video HTML5.
+                            </video>
+                        </div>
+                    `;
+                }
+
                 const postHtml = `
                     <div class="card card-hover mb-4 animate-fade-in-up" id="postCard-${post.postId}">
                         <div class="card-body p-4">
@@ -854,6 +887,7 @@
                             </div>
                             ${contentHtml}
                             ${imageHtml}
+                            ${videoHtml}
                             
                             <div class="d-flex justify-content-between text-muted small border-top border-bottom py-2 my-2">
                                 <span id="likeCount-${post.postId}" class="cursor-pointer btn-view-reactions hover-underline" data-post-id="${post.postId}">
@@ -1370,13 +1404,44 @@
                 renderPostImagePreviews();
             });
 
+            // Quản lý file video đính kèm bài viết (Tối đa 1 video, max 25MB)
+            let selectedPostVideo = null;
+
+            $("#postVideoInput").on("change", function () {
+                const file = this.files[0];
+                if (file) {
+                    const allowedTypes = ['video/mp4', 'video/webm'];
+                    if (!allowedTypes.includes(file.type)) {
+                        alert("Chỉ chấp nhận file video định dạng MP4 hoặc WebM.");
+                        $(this).val("");
+                        return;
+                    }
+                    if (file.size > 25 * 1024 * 1024) {
+                        alert("Dung lượng video vượt quá 25MB.");
+                        $(this).val("");
+                        return;
+                    }
+                    selectedPostVideo = file;
+                    const videoUrl = URL.createObjectURL(file);
+                    $("#postVideoPreview").attr("src", videoUrl);
+                    $("#postVideoPreviewWrapper").removeClass("d-none");
+                }
+            });
+
+            $("#btnRemoveVideoPreview").click(function () {
+                selectedPostVideo = null;
+                $("#postVideoInput").val("");
+                $("#postVideoPreview").attr("src", "");
+                $("#postVideoPreviewWrapper").addClass("d-none");
+            });
+
             // 2. Gửi bài đăng mới bằng AJAX
             $("#createPostForm").submit(function (e) {
                 e.preventDefault();
                 const content = $("#postContent").val().trim();
 
-                if (!content && selectedPostFiles.length === 0) {
-                    alert("Vui lòng nhập nội dung hoặc chọn ít nhất 1 ảnh để đăng bài.");
+                if (!content && selectedPostFiles.length === 0 && !selectedPostVideo) {
+                    alert("Vui lòng nhập nội dung, chọn ảnh hoặc chọn video để đăng bài.");
                     return;
                 }
 
@@ -1385,6 +1450,9 @@
                 selectedPostFiles.forEach(file => {
                     formData.append("images", file);
                 });
+                if (selectedPostVideo) {
+                    formData.append("video", selectedPostVideo);
+                }
 
                 $.ajax({
                     url: "/Post/Create",
@@ -1396,9 +1464,13 @@
                         if (res.success) {
                             $("#postContent").val("");
                             $("#postImageInput").val("");
+                            $("#postVideoInput").val("");
                             selectedPostFiles = [];
+                            selectedPostVideo = null;
                             $("#postImagePreviewContainer").empty();
                             $("#postImagePreviewWrapper").addClass("d-none");
+                            $("#postVideoPreview").attr("src", "");
+                            $("#postVideoPreviewWrapper").addClass("d-none");
                             $("#postValidationAlert").addClass("d-none");
                         } else {
                             if (res.isViolent) {

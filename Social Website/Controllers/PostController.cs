@@ -11,11 +11,74 @@ namespace Social_Website.Controllers
     {
         private readonly SocialDbContext _context;
         private readonly IHubContext<SocialHub> _hubContext;
+        private readonly IConfiguration _configuration;
 
-        public PostController(SocialDbContext context, IHubContext<SocialHub> hubContext)
+        public PostController(SocialDbContext context, IHubContext<SocialHub> hubContext, IConfiguration configuration)
         {
             _context = context;
             _hubContext = hubContext;
+            _configuration = configuration;
+        }
+
+        private static bool IsValidImageFile(IFormFile file)
+        {
+            var allowedExts = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExts.Contains(ext)) return false;
+
+            try
+            {
+                using var stream = file.OpenReadStream();
+                if (stream.Length < 12) return false;
+                byte[] header = new byte[12];
+                stream.Read(header, 0, 12);
+
+                if (header[0] == 0x4D && header[1] == 0x5A) return false; // MZ executable
+                if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) return true; // JPEG
+                if (header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47) return true; // PNG
+                if (header[0] == 0x47 && header[1] == 0x49 && header[2] == 0x46) return true; // GIF
+                if (header[0] == (byte)'R' && header[1] == (byte)'I' && header[2] == (byte)'F' && header[3] == (byte)'F' &&
+                    header[8] == (byte)'W' && header[9] == (byte)'E' && header[10] == (byte)'B' && header[11] == (byte)'P') return true; // WEBP
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool IsValidVideoFile(IFormFile file)
+        {
+            var allowedExts = new[] { ".mp4", ".webm" };
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExts.Contains(ext)) return false;
+
+            try
+            {
+                using var stream = file.OpenReadStream();
+                if (stream.Length < 12) return false;
+                byte[] header = new byte[12];
+                stream.Read(header, 0, 12);
+
+                if (header[0] == 0x4D && header[1] == 0x5A) return false; // MZ executable
+
+                if (ext == ".mp4")
+                {
+                    return header[4] == (byte)'f' && header[5] == (byte)'t' && header[6] == (byte)'y' && header[7] == (byte)'p';
+                }
+
+                if (ext == ".webm")
+                {
+                    return header[0] == 0x1A && header[1] == 0x45 && header[2] == 0xDF && header[3] == 0xA3;
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private async Task<(bool contains, List<string> detectedWords)> ContainsViolentWordsAsync(string text)
@@ -46,7 +109,7 @@ namespace Social_Website.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string? content, List<IFormFile>? images, IFormFile? image)
+        public async Task<IActionResult> Create(string? content, List<IFormFile>? images, IFormFile? image, IFormFile? video)
         {
             var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null)
@@ -54,36 +117,51 @@ namespace Social_Website.Controllers
                 return Json(new { success = false, message = "Vui lòng đăng nhập" });
             }
 
-            var selectedFiles = new List<IFormFile>();
+            var selectedImages = new List<IFormFile>();
             if (images != null && images.Count > 0)
             {
-                selectedFiles.AddRange(images.Where(f => f.Length > 0));
+                selectedImages.AddRange(images.Where(f => f.Length > 0));
             }
             else if (image != null && image.Length > 0)
             {
-                selectedFiles.Add(image);
+                selectedImages.Add(image);
             }
 
-            if (selectedFiles.Count > 5)
+            if (selectedImages.Count > 5)
             {
-                selectedFiles = selectedFiles.Take(5).ToList();
+                selectedImages = selectedImages.Take(5).ToList();
             }
 
             bool hasContent = !string.IsNullOrWhiteSpace(content);
-            bool hasImages = selectedFiles.Count > 0;
+            bool hasImages = selectedImages.Count > 0;
+            bool hasVideo = video != null && video.Length > 0;
 
-            if (!hasContent && !hasImages)
+            if (!hasContent && !hasImages && !hasVideo)
             {
-                return Json(new { success = false, message = "Vui lòng nhập nội dung hoặc chọn ảnh để đăng bài" });
+                return Json(new { success = false, message = "Vui lòng nhập nội dung, chọn ảnh hoặc chọn video để đăng bài" });
             }
 
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
-            foreach (var file in selectedFiles)
+            // Validate image files
+            foreach (var imgFile in selectedImages)
             {
-                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-                if (!allowedExtensions.Contains(ext))
+                if (!IsValidImageFile(imgFile))
                 {
-                    return Json(new { success = false, message = $"File '{file.FileName}' không thuộc định dạng ảnh được hỗ trợ (JPG, PNG, WEBP, GIF)" });
+                    return Json(new { success = false, message = $"File '{imgFile.FileName}' không phải là ảnh hợp lệ (JPG, PNG, WEBP, GIF)" });
+                }
+            }
+
+            // Validate video file
+            string? uploadedVideoUrl = null;
+            if (hasVideo)
+            {
+                if (video!.Length > 25 * 1024 * 1024)
+                {
+                    return Json(new { success = false, message = $"Video '{video.FileName}' vượt quá dung lượng tối đa 25MB" });
+                }
+
+                if (!IsValidVideoFile(video))
+                {
+                    return Json(new { success = false, message = $"File '{video.FileName}' không phải là video hợp lệ (MP4, WebM)" });
                 }
             }
 
@@ -102,7 +180,7 @@ namespace Social_Website.Controllers
                 }
             }
 
-            var uploadedUrls = new List<string>();
+            var uploadedImageUrls = new List<string>();
             if (hasImages)
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "posts");
@@ -111,7 +189,7 @@ namespace Social_Website.Controllers
                     Directory.CreateDirectory(uploadsFolder);
                 }
 
-                foreach (var imgFile in selectedFiles)
+                foreach (var imgFile in selectedImages)
                 {
                     var ext = Path.GetExtension(imgFile.FileName);
                     var uniqueFileName = Guid.NewGuid().ToString() + ext;
@@ -120,22 +198,55 @@ namespace Social_Website.Controllers
                     {
                         await imgFile.CopyToAsync(fileStream);
                     }
-                    uploadedUrls.Add("/uploads/posts/" + uniqueFileName);
+                    uploadedImageUrls.Add("/uploads/posts/" + uniqueFileName);
                 }
             }
 
-            string? imageUrl = uploadedUrls.Count > 0 ? string.Join(",", uploadedUrls) : null;
+            if (hasVideo)
+            {
+                var videoFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "videos");
+                if (!Directory.Exists(videoFolder))
+                {
+                    Directory.CreateDirectory(videoFolder);
+                }
+
+                var ext = Path.GetExtension(video!.FileName);
+                var uniqueFileName = Guid.NewGuid().ToString() + ext;
+                var filePath = Path.Combine(videoFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await video.CopyToAsync(fileStream);
+                }
+                uploadedVideoUrl = "/uploads/videos/" + uniqueFileName;
+            }
+
+            string? imageUrl = uploadedImageUrls.Count > 0 ? string.Join(",", uploadedImageUrls) : null;
 
             var post = new Post
             {
                 Content = hasContent ? content!.Trim() : string.Empty,
                 ImageUrl = imageUrl,
+                VideoUrl = uploadedVideoUrl,
                 CreatedAt = DateTime.UtcNow,
                 UserId = currentUser.UserId
             };
 
             _context.Posts.Add(post);
             await _context.SaveChangesAsync();
+
+            if (uploadedImageUrls.Count > 0)
+            {
+                for (int i = 0; i < uploadedImageUrls.Count; i++)
+                {
+                    _context.PostImages.Add(new PostImage
+                    {
+                        PostId = post.PostId,
+                        ImageUrl = uploadedImageUrls[i],
+                        OrderIndex = i
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
 
             // Xử lý thông báo Tag nếu có trong bài viết
             await ProcessTagsAndNotifyAsync(post.Content, currentUser.UserId, true, post.PostId);
@@ -146,6 +257,8 @@ namespace Social_Website.Controllers
                 postId = post.PostId,
                 content = post.Content,
                 imageUrl = post.ImageUrl,
+                images = uploadedImageUrls,
+                videoUrl = post.VideoUrl,
                 createdAt = post.CreatedAt.ToVietnamTimeString(),
                 fullName = currentUser.FullName,
                 avatarUrl = currentUser.AvatarUrl,
@@ -521,6 +634,21 @@ namespace Social_Website.Controllers
             return Json(new { success = true, reactions = reactions });
         }
 
+        private static void DeletePhysicalFile(string? relativeUrl)
+        {
+            if (string.IsNullOrWhiteSpace(relativeUrl)) return;
+            try
+            {
+                var relativePath = relativeUrl.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar);
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath);
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+            }
+            catch { }
+        }
+
         [HttpPost]
         public async Task<IActionResult> Delete(long id)
         {
@@ -530,7 +658,7 @@ namespace Social_Website.Controllers
                 return Json(new { success = false, message = "Vui lòng đăng nhập" });
             }
 
-            var post = await _context.Posts.FindAsync(id);
+            var post = await _context.Posts.Include(p => p.Images).FirstOrDefaultAsync(p => p.PostId == id);
             if (post == null)
             {
                 return Json(new { success = false, message = "Bài viết không tồn tại hoặc đã bị xóa" });
@@ -540,6 +668,25 @@ namespace Social_Website.Controllers
             if (post.UserId != currentUser.UserId && !currentUser.IsAdmin)
             {
                 return Json(new { success = false, message = "Bạn không có quyền xóa bài viết này" });
+            }
+
+            if (post.Images != null && post.Images.Count > 0)
+            {
+                foreach (var img in post.Images)
+                {
+                    DeletePhysicalFile(img.ImageUrl);
+                }
+            }
+            if (!string.IsNullOrEmpty(post.ImageUrl))
+            {
+                foreach (var url in post.ImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    DeletePhysicalFile(url);
+                }
+            }
+            if (!string.IsNullOrEmpty(post.VideoUrl))
+            {
+                DeletePhysicalFile(post.VideoUrl);
             }
 
             _context.Posts.Remove(post);
@@ -699,6 +846,7 @@ namespace Social_Website.Controllers
 
             var posts = await _context.Posts
                 .Include(p => p.User)
+                .Include(p => p.Images)
                 .Include(p => p.Likes)
                 .Include(p => p.Comments).ThenInclude(c => c.User)
                 .Where(p => savedPostIds.Contains(p.PostId))

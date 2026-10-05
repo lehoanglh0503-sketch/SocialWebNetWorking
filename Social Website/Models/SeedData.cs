@@ -8,15 +8,18 @@ namespace Social_Website.Models
     {
         public static void SeedDatabase(SocialDbContext context)
         {
-            context.Database.Migrate();
-
-            // Đảm bảo cột ImageUrl và SharedPostId tồn tại trong bảng Messages
+            // Đảm bảo cấu trúc cột và bảng mới tồn tại trước khi EF Core thực hiện query
             try
             {
                 context.Database.ExecuteSqlRaw(@"
                     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'LockReason')
                     BEGIN
                         ALTER TABLE [Users] ADD [LockReason] nvarchar(max) NULL;
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'Email')
+                    BEGIN
+                        ALTER TABLE [Users] ADD [Email] nvarchar(256) NULL;
                     END
 
                     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Messages]') AND name = 'ImageUrl')
@@ -90,7 +93,52 @@ namespace Social_Website.Models
                     BEGIN
                         INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES (N'20261005010000_AddSavedPostsAndUpdatedAt', N'6.0.25');
                     END
+
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Posts]') AND name = 'VideoUrl')
+                    BEGIN
+                        ALTER TABLE [Posts] ADD [VideoUrl] nvarchar(max) NULL;
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PostImages')
+                    BEGIN
+                        CREATE TABLE [PostImages] (
+                            [PostImageId] bigint NOT NULL IDENTITY,
+                            [PostId] bigint NOT NULL,
+                            [ImageUrl] nvarchar(max) NOT NULL,
+                            [OrderIndex] int NOT NULL DEFAULT 0,
+                            [CreatedAt] datetime2 NOT NULL DEFAULT GETDATE(),
+                            CONSTRAINT [PK_PostImages] PRIMARY KEY ([PostImageId]),
+                            CONSTRAINT [FK_PostImages_Posts_PostId] FOREIGN KEY ([PostId]) REFERENCES [Posts] ([PostId]) ON DELETE CASCADE
+                        );
+                        CREATE INDEX [IX_PostImages_PostId] ON [PostImages] ([PostId]);
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PasswordResetTokens')
+                    BEGIN
+                        CREATE TABLE [PasswordResetTokens] (
+                            [PasswordResetTokenId] bigint NOT NULL IDENTITY,
+                            [UserId] bigint NOT NULL,
+                            [TokenHash] nvarchar(256) NOT NULL,
+                            [ExpiresAt] datetime2 NOT NULL,
+                            [UsedAt] datetime2 NULL,
+                            [CreatedAt] datetime2 NOT NULL DEFAULT GETDATE(),
+                            CONSTRAINT [PK_PasswordResetTokens] PRIMARY KEY ([PasswordResetTokenId]),
+                            CONSTRAINT [FK_PasswordResetTokens_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([UserId]) ON DELETE CASCADE
+                        );
+                        CREATE INDEX [IX_PasswordResetTokens_UserId] ON [PasswordResetTokens] ([UserId]);
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20261005020000_AddMediaAndEmailPasswordReset')
+                    BEGIN
+                        INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES (N'20261005020000_AddMediaAndEmailPasswordReset', N'6.0.25');
+                    END
                 ");
+            }
+            catch { }
+
+            try
+            {
+                context.Database.Migrate();
             }
             catch { }
 

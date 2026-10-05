@@ -17,6 +17,10 @@ namespace Social_Website.Models
         [StringLength(100, ErrorMessage = "Tên đầy đủ không được vượt quá 100 ký tự")]
         public string FullName { get; set; } = string.Empty;
         
+        [StringLength(256, ErrorMessage = "Email không được vượt quá 256 ký tự")]
+        [EmailAddress(ErrorMessage = "Địa chỉ email không hợp lệ")]
+        public string? Email { get; set; }
+        
         public string AvatarUrl { get; set; } = string.Empty;
         
         public bool IsAdmin { get; set; } = false;

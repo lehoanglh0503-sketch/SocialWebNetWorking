@@ -4,6 +4,12 @@ namespace Social_Website.Hubs
 {
     public class SocialHub : Hub
     {
-        // Hub này được sử dụng để phát (broadcast) bài đăng mới, bình luận mới qua IHubContext ở Controller
+        public async Task JoinUserGroup(long userId)
+        {
+            if (userId > 0)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"User_{userId}");
+            }
+        }
     }
 }
