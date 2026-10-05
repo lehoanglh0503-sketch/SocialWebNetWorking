@@ -338,6 +338,14 @@ body {
         position: static !important;
         top: 0;
     }
+
+    #feedContainer {
+        padding-bottom: 85px !important;
+    }
+
+    main {
+        padding-bottom: 85px !important;
+    }
 }
 
 @media (max-width: 575.98px) {
