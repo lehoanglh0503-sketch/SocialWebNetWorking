@@ -46,7 +46,7 @@ namespace Social_Website.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string? content, IFormFile? image)
+        public async Task<IActionResult> Create(string? content, List<IFormFile>? images, IFormFile? image)
         {
             var currentUser = this.GetCurrentUser(_context);
             if (currentUser == null)
@@ -54,15 +54,38 @@ namespace Social_Website.Controllers
                 return Json(new { success = false, message = "Vui lòng đăng nhập" });
             }
 
-            bool hasContent = !string.IsNullOrWhiteSpace(content);
-            bool hasImage = image != null && image.Length > 0;
+            var selectedFiles = new List<IFormFile>();
+            if (images != null && images.Count > 0)
+            {
+                selectedFiles.AddRange(images.Where(f => f.Length > 0));
+            }
+            else if (image != null && image.Length > 0)
+            {
+                selectedFiles.Add(image);
+            }
 
-            if (!hasContent && !hasImage)
+            if (selectedFiles.Count > 5)
+            {
+                selectedFiles = selectedFiles.Take(5).ToList();
+            }
+
+            bool hasContent = !string.IsNullOrWhiteSpace(content);
+            bool hasImages = selectedFiles.Count > 0;
+
+            if (!hasContent && !hasImages)
             {
                 return Json(new { success = false, message = "Vui lòng nhập nội dung hoặc chọn ảnh để đăng bài" });
             }
 
-            string? imageUrl = null;
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+            foreach (var file in selectedFiles)
+            {
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(ext))
+                {
+                    return Json(new { success = false, message = $"File '{file.FileName}' không thuộc định dạng ảnh được hỗ trợ (JPG, PNG, WEBP, GIF)" });
+                }
+            }
 
             if (hasContent)
             {
@@ -79,7 +102,8 @@ namespace Social_Website.Controllers
                 }
             }
 
-            if (hasImage)
+            var uploadedUrls = new List<string>();
+            if (hasImages)
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "posts");
                 if (!Directory.Exists(uploadsFolder))
@@ -87,15 +111,20 @@ namespace Social_Website.Controllers
                     Directory.CreateDirectory(uploadsFolder);
                 }
 
-                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(image!.FileName);
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                foreach (var imgFile in selectedFiles)
                 {
-                    await image.CopyToAsync(fileStream);
+                    var ext = Path.GetExtension(imgFile.FileName);
+                    var uniqueFileName = Guid.NewGuid().ToString() + ext;
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await imgFile.CopyToAsync(fileStream);
+                    }
+                    uploadedUrls.Add("/uploads/posts/" + uniqueFileName);
                 }
-
-                imageUrl = "/uploads/posts/" + uniqueFileName;
             }
+
+            string? imageUrl = uploadedUrls.Count > 0 ? string.Join(",", uploadedUrls) : null;
 
             var post = new Post
             {

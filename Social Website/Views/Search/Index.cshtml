@@ -147,9 +147,24 @@
                                     }
                                     @if (!string.IsNullOrEmpty(post.ImageUrl))
                                     {
-                                        <div class="text-center mb-2">
-                                            <img src="@post.ImageUrl" class="img-fluid rounded shadow-sm" style="max-height: 350px; width: auto;" />
-                                        </div>
+                                        var searchImgList = post.ImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                        if (searchImgList.Length == 1)
+                                        {
+                                            <div class="text-center mb-2">
+                                                <img src="@searchImgList[0]" class="img-fluid rounded shadow-sm" style="max-height: 350px; width: auto;" />
+                                            </div>
+                                        }
+                                        else if (searchImgList.Length > 1)
+                                        {
+                                            <div class="row g-2 mb-2">
+                                                @foreach (var img in searchImgList)
+                                                {
+                                                    <div class="col-@(searchImgList.Length == 2 ? "6" : searchImgList.Length == 3 ? "4" : "6")">
+                                                        <img src="@img" class="img-fluid rounded shadow-sm w-100" style="height: 180px; object-fit: cover; cursor: pointer;" onclick="window.open('@img')" />
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
                                     }
                                 </div>
                             }
@@ -227,9 +242,24 @@
                                     }
                                     @if (!string.IsNullOrEmpty(post.ImageUrl))
                                     {
-                                        <div class="text-center mb-2">
-                                            <img src="@post.ImageUrl" class="img-fluid rounded shadow-sm" style="max-height: 350px; width: auto;" />
-                                        </div>
+                                        var searchImgList = post.ImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                        if (searchImgList.Length == 1)
+                                        {
+                                            <div class="text-center mb-2">
+                                                <img src="@searchImgList[0]" class="img-fluid rounded shadow-sm" style="max-height: 350px; width: auto;" />
+                                            </div>
+                                        }
+                                        else if (searchImgList.Length > 1)
+                                        {
+                                            <div class="row g-2 mb-2">
+                                                @foreach (var img in searchImgList)
+                                                {
+                                                    <div class="col-@(searchImgList.Length == 2 ? "6" : searchImgList.Length == 3 ? "4" : "6")">
+                                                        <img src="@img" class="img-fluid rounded shadow-sm w-100" style="height: 180px; object-fit: cover; cursor: pointer;" onclick="window.open('@img')" />
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
                                     }
                                 </div>
                             }

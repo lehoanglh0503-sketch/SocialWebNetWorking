@@ -101,15 +101,12 @@
                                 <span id="postValidationMessage"></span>
                             </div>
 
-                            <!-- Xem trước ảnh được chọn -->
-                            <div id="postImagePreviewWrapper" class="position-relative d-none mt-2 mb-2">
-                                <img id="postImagePreview" src="#" alt="Preview" class="rounded img-fluid" style="max-height: 250px; width: auto; object-fit: cover;" />
-                                <button type="button" id="btnRemovePostImage" class="btn btn-sm btn-dark position-absolute top-0 end-0 m-2 rounded-circle" style="width: 28px; height: 28px; padding: 0; line-height: 1;" title="Xóa ảnh">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
+                            <!-- Xem trước ảnh được chọn (Hỗ trợ tối đa 5 ảnh) -->
+                            <div id="postImagePreviewWrapper" class="d-none mt-2 mb-2">
+                                <div class="row g-2" id="postImagePreviewContainer"></div>
                             </div>
 
-                            <input type="file" id="postImageInput" accept="image/*" class="d-none" />
+                            <input type="file" id="postImageInput" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="d-none" />
 
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <div class="d-flex text-muted gap-3 small">
@@ -164,9 +161,24 @@
                         }
                         @if (!string.IsNullOrEmpty(post.ImageUrl))
                         {
-                            <div class="post-image-container mb-3 text-center">
-                                <img src="@post.ImageUrl" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm" style="max-height: 500px; width: auto; object-fit: cover;" />
-                            </div>
+                            var imagesList = post.ImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                            if (imagesList.Length == 1)
+                            {
+                                <div class="post-image-container mb-3 text-center">
+                                    <img src="@imagesList[0]" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm" style="max-height: 500px; width: auto; object-fit: cover; cursor: pointer;" onclick="window.open('@imagesList[0]')" />
+                                </div>
+                            }
+                            else if (imagesList.Length > 1)
+                            {
+                                <div class="post-images-grid mb-3 row g-2">
+                                    @foreach (var img in imagesList)
+                                    {
+                                        <div class="col-@(imagesList.Length == 2 ? "6" : imagesList.Length == 3 ? "4" : "6")">
+                                            <img src="@img" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm w-100" style="height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open('@img')" />
+                                        </div>
+                                    }
+                                </div>
+                            }
                         }
 
                         <!-- Post Actions summary -->
@@ -741,7 +753,17 @@
                 `;
 
                 const contentHtml = post.content ? `<p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">${post.content}</p>` : '';
-                const imageHtml = post.imageUrl ? `<div class="post-image-container mb-3 text-center"><img src="${post.imageUrl}" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm" style="max-height: 500px; width: auto; object-fit: cover;" /></div>` : '';
+                let imageHtml = '';
+                if (post.imageUrl) {
+                    const imgList = post.imageUrl.split(',').filter(x => x);
+                    if (imgList.length === 1) {
+                        imageHtml = `<div class="post-image-container mb-3 text-center"><img src="${imgList[0]}" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm" style="max-height: 500px; width: auto; object-fit: cover; cursor: pointer;" onclick="window.open('${imgList[0]}')" /></div>`;
+                    } else if (imgList.length > 1) {
+                        const colClass = imgList.length === 2 ? 'col-6' : (imgList.length === 3 ? 'col-4' : 'col-6');
+                        const imgsHtml = imgList.map(img => `<div class="${colClass}"><img src="${img}" class="img-fluid rounded shadow-sm w-100" style="height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open('${img}')" /></div>`).join('');
+                        imageHtml = `<div class="post-images-grid mb-3 row g-2">${imgsHtml}</div>`;
+                    }
+                }
 
                 const postHtml = `
                     <div class="card card-hover mb-4 animate-fade-in-up" id="postCard-${post.postId}">
@@ -1221,43 +1243,74 @@
                 $("#postValidationAlert").addClass("d-none");
             });
 
-            // Xem trước ảnh khi chọn từ máy
+            // Quản lý danh sách file ảnh đính kèm bài viết (Tối đa 5 ảnh)
+            let selectedPostFiles = [];
+
             $("#postImageInput").on("change", function () {
-                const file = this.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        $("#postImagePreview").attr("src", e.target.result);
-                        $("#postImagePreviewWrapper").removeClass("d-none");
-                    };
-                    reader.readAsDataURL(file);
+                const files = Array.from(this.files);
+                if (files.length > 0) {
+                    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+                    const validFiles = files.filter(f => allowedTypes.includes(f.type));
+
+                    if (validFiles.length < files.length) {
+                        alert("Chỉ chấp nhận các file ảnh định dạng JPG, PNG, WEBP, GIF.");
+                    }
+
+                    selectedPostFiles = selectedPostFiles.concat(validFiles).slice(0, 5);
+                    renderPostImagePreviews();
                 }
             });
 
-            // Xóa ảnh xem trước
-            $("#btnRemovePostImage").on("click", function () {
-                $("#postImageInput").val("");
-                $("#postImagePreview").attr("src", "#");
-                $("#postImagePreviewWrapper").addClass("d-none");
+            function renderPostImagePreviews() {
+                const container = $("#postImagePreviewContainer");
+                container.empty();
+
+                if (selectedPostFiles.length === 0) {
+                    $("#postImagePreviewWrapper").addClass("d-none");
+                    return;
+                }
+
+                $("#postImagePreviewWrapper").removeClass("d-none");
+                const colClass = selectedPostFiles.length === 1 ? 'col-12' : (selectedPostFiles.length === 2 ? 'col-6' : 'col-4');
+
+                selectedPostFiles.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const itemHtml = `
+                            <div class="${colClass} position-relative">
+                                <img src="${e.target.result}" class="img-fluid rounded shadow-sm w-100" style="height: 120px; object-fit: cover;" />
+                                <button type="button" class="btn btn-sm btn-dark position-absolute top-0 end-0 m-1 rounded-circle btn-remove-preview-img" data-index="${index}" style="width: 24px; height: 24px; padding: 0; line-height: 1;" title="Xóa ảnh">
+                                    <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </div>
+                        `;
+                        container.append(itemHtml);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            $(document).on("click", ".btn-remove-preview-img", function () {
+                const idx = parseInt($(this).data("index"));
+                selectedPostFiles.splice(idx, 1);
+                renderPostImagePreviews();
             });
 
             // 2. Gửi bài đăng mới bằng AJAX
             $("#createPostForm").submit(function (e) {
                 e.preventDefault();
                 const content = $("#postContent").val().trim();
-                const fileInput = document.getElementById("postImageInput");
-                const file = fileInput ? fileInput.files[0] : null;
 
-                if (!content && !file) {
-                    alert("Vui lòng nhập nội dung hoặc chọn ảnh để đăng bài.");
+                if (!content && selectedPostFiles.length === 0) {
+                    alert("Vui lòng nhập nội dung hoặc chọn ít nhất 1 ảnh để đăng bài.");
                     return;
                 }
 
                 const formData = new FormData();
                 formData.append("content", content);
-                if (file) {
-                    formData.append("image", file);
-                }
+                selectedPostFiles.forEach(file => {
+                    formData.append("images", file);
+                });
 
                 $.ajax({
                     url: "/Post/Create",
@@ -1269,7 +1322,8 @@
                         if (res.success) {
                             $("#postContent").val("");
                             $("#postImageInput").val("");
-                            $("#postImagePreview").attr("src", "#");
+                            selectedPostFiles = [];
+                            $("#postImagePreviewContainer").empty();
                             $("#postImagePreviewWrapper").addClass("d-none");
                             $("#postValidationAlert").addClass("d-none");
                         } else {
