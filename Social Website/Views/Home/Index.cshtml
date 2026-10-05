@@ -128,19 +128,46 @@
                     <div class="card-body p-4">
                         <!-- User header -->
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="d-flex align-items-center">
+                            <a href="/Profile/View/@post.User?.Username" class="d-flex align-items-center text-decoration-none text-dark">
                                 <img src="@post.User?.AvatarUrl" alt="@post.User?.FullName" class="avatar avatar-sm me-3" />
                                 <div>
-                                    <h6 class="fw-bold mb-0">@post.User?.FullName</h6>
+                                    <h6 class="fw-bold mb-0 text-dark">@post.User?.FullName</h6>
                                     <span class="text-muted small">@post.CreatedAt.ToVietnamTimeString()</span>
+                                    @if (post.UpdatedAt != null)
+                                    {
+                                        <span class="text-muted small ms-1 post-updated-badge" title="Đã chỉnh sửa lúc @post.UpdatedAt.Value.ToVietnamTimeString()">(đã chỉnh sửa)</span>
+                                    }
                                 </div>
-                            </div>
+                            </a>
                             <div class="dropdown">
                                 <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
                                     <i class="bi bi-three-dots"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                                    <li><a class="dropdown-item" href="#"><i class="bi bi-bookmark me-2"></i>Lưu bài viết</a></li>
+                                    @{
+                                        var savedList = ViewBag.SavedPostIds as List<long> ?? new List<long>();
+                                        bool isSavedPost = savedList.Contains(post.PostId);
+                                    }
+                                    <li>
+                                        <a class="dropdown-item btn-toggle-save-post" href="#" data-post-id="@post.PostId">
+                                            @if (isSavedPost)
+                                            {
+                                                <i class="bi bi-bookmark-fill me-2 text-warning"></i><span>Bỏ lưu bài viết</span>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-bookmark me-2"></i><span>Lưu bài viết</span>
+                                            }
+                                        </a>
+                                    </li>
+                                    @if (post.UserId == currentUser?.UserId)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item btn-edit-post-trigger" href="#" data-post-id="@post.PostId" data-content="@post.Content" data-has-image="@(!string.IsNullOrEmpty(post.ImageUrl))" data-image-url="@post.ImageUrl">
+                                                <i class="bi bi-pencil-square me-2 text-primary"></i>Chỉnh sửa bài viết
+                                            </a>
+                                        </li>
+                                    }
                                     @if (post.UserId != currentUser?.UserId)
                                     {
                                         <li><a class="dropdown-item text-warning btn-report-post-trigger" href="#" data-post-id="@post.PostId"><i class="bi bi-flag me-2"></i>Báo cáo bài viết</a></li>
@@ -710,6 +737,53 @@
                     <button type="submit" class="btn btn-primary btn-sm px-3" style="border-radius: 0 20px 20px 0;"><i class="bi bi-send-fill"></i></button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chỉnh sửa bài viết (M05) -->
+<div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="editPostModalLabel">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>Chỉnh sửa bài viết
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="editPostForm">
+                    <input type="hidden" id="editPostId" name="postId" />
+                    
+                    <div class="mb-3">
+                        <label for="editPostContent" class="form-label fw-semibold text-muted small">Nội dung bài viết</label>
+                        <textarea id="editPostContent" name="content" class="form-control" rows="4" placeholder="Nhập nội dung bài viết mới..."></textarea>
+                    </div>
+
+                    <div id="editPostAlert" class="alert alert-danger d-none mb-3" style="border-radius: 12px; font-size: 0.85rem;">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="editPostAlertMsg"></span>
+                    </div>
+
+                    <div id="editPostImagePreviewArea" class="d-none mb-3 p-3 bg-light rounded-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-semibold small text-dark"><i class="bi bi-image me-1"></i>Ảnh hiện tại:</span>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editRemoveImage" name="removeImage" />
+                                <label class="form-check-label small text-danger fw-semibold" for="editRemoveImage">Bỏ ảnh này</label>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <img id="editPostImagePreview" src="" class="img-fluid rounded shadow-sm" style="max-height: 200px;" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4" id="btnSaveEditPost">Lưu thay đổi</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -1810,6 +1884,101 @@
                 }).fail(function (xhr) {
                     btn.prop("disabled", false).html('<i class="bi bi-send me-1"></i>Gửi');
                     alert("Có lỗi xảy ra khi gửi tin nhắn. Vui lòng thử lại!");
+                });
+            });
+
+            // 15. Toggle Save Post (M06)
+            $(document).on("click", ".btn-toggle-save-post", function (e) {
+                e.preventDefault();
+                const btn = $(this);
+                const postId = btn.data("post-id");
+                
+                $.post("/Post/ToggleSavePost", { postId: postId }, function (res) {
+                    if (res.success) {
+                        if (res.isSaved) {
+                            btn.html('<i class="bi bi-bookmark-fill me-2 text-warning"></i><span>Bỏ lưu bài viết</span>');
+                        } else {
+                            btn.html('<i class="bi bi-bookmark me-2"></i><span>Lưu bài viết</span>');
+                        }
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+
+            // 16. Trigger Edit Post Modal (M05)
+            $(document).on("click", ".btn-edit-post-trigger", function (e) {
+                e.preventDefault();
+                const btn = $(this);
+                const postId = btn.data("post-id");
+                const content = btn.data("content") || "";
+                const hasImage = btn.data("has-image");
+                const imageUrl = btn.data("image-url");
+
+                $("#editPostId").val(postId);
+                $("#editPostContent").val(content);
+                $("#editRemoveImage").prop("checked", false);
+                $("#editPostAlert").addClass("d-none");
+
+                if (hasImage && imageUrl) {
+                    const firstImg = imageUrl.split(',')[0];
+                    $("#editPostImagePreview").attr("src", firstImg);
+                    $("#editPostImagePreviewArea").removeClass("d-none");
+                } else {
+                    $("#editPostImagePreviewArea").addClass("d-none");
+                }
+
+                $("#editPostModal").modal("show");
+            });
+
+            // 17. Submit Edit Post Form (M05)
+            $("#editPostForm").on("submit", function (e) {
+                e.preventDefault();
+                const postId = $("#editPostId").val();
+                const content = $("#editPostContent").val();
+                const removeImage = $("#editRemoveImage").is(":checked");
+
+                $("#btnSaveEditPost").prop("disabled", true);
+                $("#editPostAlert").addClass("d-none");
+
+                $.post("/Post/EditPost", { postId: postId, content: content, removeImage: removeImage }, function (res) {
+                    $("#btnSaveEditPost").prop("disabled", false);
+                    if (res.success) {
+                        $("#editPostModal").modal("hide");
+                        const postCard = $(`#postCard-${postId}`);
+                        if (postCard.length > 0) {
+                            // Update content
+                            let pContent = postCard.find(".card-text").first();
+                            if (pContent.length > 0) {
+                                pContent.text(res.content);
+                            } else if (res.content) {
+                                postCard.find(".card-body").append(`<p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">${res.content}</p>`);
+                            }
+                            
+                            // Remove image if requested
+                            if (removeImage) {
+                                postCard.find(".post-image-container, .post-images-grid").remove();
+                                postCard.find(".btn-edit-post-trigger").data("has-image", false);
+                            }
+                            postCard.find(".btn-edit-post-trigger").data("content", res.content);
+
+                            // Add badge
+                            if (postCard.find(".post-updated-badge").length === 0) {
+                                postCard.find(".text-muted.small").first().after(' <span class="text-muted small ms-1 post-updated-badge" title="Đã chỉnh sửa">(đã chỉnh sửa)</span>');
+                            }
+                        }
+                    } else {
+                        $("#editPostAlertMsg").text(res.message);
+                        $("#editPostAlert").removeClass("d-none");
+                    }
+                }).fail(function (xhr) {
+                    $("#btnSaveEditPost").prop("disabled", false);
+                    if (xhr.status === 403) {
+                        $("#editPostAlertMsg").text("Bạn không có quyền chỉnh sửa bài viết này.");
+                    } else {
+                        $("#editPostAlertMsg").text("Có lỗi xảy ra khi lưu bài viết. Vui lòng thử lại!");
+                    }
+                    $("#editPostAlert").removeClass("d-none");
                 });
             });
 

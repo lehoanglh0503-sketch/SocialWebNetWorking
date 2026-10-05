@@ -12,6 +12,7 @@ namespace Social_Website.Models
         public string? ImageUrl { get; set; }
         
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
         
         public long UserId { get; set; }
         public User? User { get; set; }

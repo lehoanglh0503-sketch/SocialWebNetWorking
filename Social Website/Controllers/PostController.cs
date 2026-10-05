@@ -581,5 +581,137 @@ namespace Social_Website.Controllers
 
             return Json(new { success = true, message = "Đã xóa bình luận thành công" });
         }
+
+        [HttpPost]
+        public async Task<IActionResult> EditPost(long postId, string? content, bool removeImage)
+        {
+            var currentUser = this.GetCurrentUser(_context);
+            if (currentUser == null)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            }
+
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.PostId == postId);
+            if (post == null)
+            {
+                return Json(new { success = false, message = "Bài viết không tồn tại" });
+            }
+
+            // Server-side check ownership
+            if (post.UserId != currentUser.UserId)
+            {
+                return StatusCode(403, new { success = false, message = "Bạn không có quyền chỉnh sửa bài viết này" });
+            }
+
+            bool hasContent = !string.IsNullOrWhiteSpace(content);
+            bool hasImage = !removeImage && !string.IsNullOrEmpty(post.ImageUrl);
+
+            if (!hasContent && !hasImage)
+            {
+                return Json(new { success = false, message = "Bài viết không được để trống cả nội dung và ảnh" });
+            }
+
+            if (hasContent)
+            {
+                var (containsViolent, detected) = await ContainsViolentWordsAsync(content!);
+                if (containsViolent)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        isViolent = true,
+                        message = $"Bài viết của bạn chứa từ ngữ không phù hợp: \"{string.Join("\", \"", detected)}\". Vui lòng sửa lại."
+                    });
+                }
+            }
+
+            post.Content = hasContent ? content!.Trim() : string.Empty;
+            if (removeImage)
+            {
+                post.ImageUrl = null;
+            }
+            post.UpdatedAt = DateTime.Now;
+
+            _context.Posts.Update(post);
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                message = "Cập nhật bài viết thành công!",
+                content = post.Content,
+                imageUrl = post.ImageUrl,
+                updatedAt = post.UpdatedAt?.ToVietnamTimeString()
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleSavePost(long postId)
+        {
+            var currentUser = this.GetCurrentUser(_context);
+            if (currentUser == null)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            }
+
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.PostId == postId);
+            if (post == null)
+            {
+                return Json(new { success = false, message = "Bài viết không tồn tại" });
+            }
+
+            var saved = await _context.SavedPosts.FirstOrDefaultAsync(sp => sp.UserId == currentUser.UserId && sp.PostId == postId);
+            if (saved != null)
+            {
+                _context.SavedPosts.Remove(saved);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, isSaved = false, message = "Đã bỏ lưu bài viết" });
+            }
+            else
+            {
+                var newSaved = new SavedPost
+                {
+                    UserId = currentUser.UserId,
+                    PostId = postId,
+                    SavedAt = DateTime.Now
+                };
+                _context.SavedPosts.Add(newSaved);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, isSaved = true, message = "Đã lưu bài viết" });
+            }
+        }
+
+        [HttpGet("Saved")]
+        [HttpGet("Post/Saved")]
+        public async Task<IActionResult> Saved()
+        {
+            var currentUser = this.GetCurrentUser(_context);
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var savedPostIds = await _context.SavedPosts
+                .Where(sp => sp.UserId == currentUser.UserId)
+                .OrderByDescending(sp => sp.SavedAt)
+                .Select(sp => sp.PostId)
+                .ToListAsync();
+
+            var posts = await _context.Posts
+                .Include(p => p.User)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments).ThenInclude(c => c.User)
+                .Where(p => savedPostIds.Contains(p.PostId))
+                .ToListAsync();
+
+            var orderedPosts = savedPostIds
+                .Select(id => posts.FirstOrDefault(p => p.PostId == id))
+                .Where(p => p != null)
+                .ToList()!;
+
+            ViewBag.CurrentUser = currentUser;
+            ViewBag.SavedPostIds = savedPostIds;
+            return View("Saved", orderedPosts);
+        }
     }
 }
