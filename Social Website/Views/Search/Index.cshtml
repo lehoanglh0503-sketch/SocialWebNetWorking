@@ -86,13 +86,13 @@
                             {
                                 <div class="col">
                                     <div class="card border-0 shadow-sm h-100 rounded-3 p-3 d-flex flex-row align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center overflow-hidden me-2">
+                                        <a href="/Profile/View/@user.Username" class="d-flex align-items-center overflow-hidden me-2 text-decoration-none text-dark">
                                             <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-md rounded-circle me-3 shadow-sm" style="width: 48px; height: 48px; object-fit: cover;" />
                                             <div class="overflow-hidden">
                                                 <h6 class="fw-bold text-dark mb-0 text-truncate">@user.FullName</h6>
                                                 <span class="text-muted small">@@@user.Username</span>
                                             </div>
-                                        </div>
+                                        </a>
                                         <div class="friend-action-wrapper" id="friendAction-@user.UserId">
                                             @if (user.FriendshipStatus == "Friends")
                                             {
@@ -134,13 +134,13 @@
                             @foreach (var post in Model.Posts)
                             {
                                 <div class="card border-0 shadow-sm rounded-3 p-3 mb-2" id="postCard-@post.PostId">
-                                    <div class="d-flex align-items-center mb-2">
+                                    <a href="/Profile/View/@post.User?.Username" class="d-flex align-items-center mb-2 text-decoration-none text-dark">
                                         <img src="@post.User?.AvatarUrl" class="avatar avatar-sm rounded-circle me-2" style="width: 36px; height: 36px;" />
                                         <div>
                                             <h6 class="fw-bold text-dark mb-0">@post.User?.FullName</h6>
                                             <span class="text-muted extra-small">@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                                         </div>
-                                    </div>
+                                    </a>
                                     @if (!string.IsNullOrEmpty(post.Content))
                                     {
                                         <p class="card-text mb-2" style="white-space: pre-wrap;">@post.Content</p>
@@ -181,13 +181,13 @@
                             {
                                 <div class="col">
                                     <div class="card border-0 shadow-sm h-100 rounded-3 p-3 d-flex flex-row align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center overflow-hidden me-2">
+                                        <a href="/Profile/View/@user.Username" class="d-flex align-items-center overflow-hidden me-2 text-decoration-none text-dark">
                                             <img src="@user.AvatarUrl" alt="@user.FullName" class="avatar avatar-md rounded-circle me-3 shadow-sm" style="width: 48px; height: 48px; object-fit: cover;" />
                                             <div class="overflow-hidden">
                                                 <h6 class="fw-bold text-dark mb-0 text-truncate">@user.FullName</h6>
                                                 <span class="text-muted small">@@@user.Username</span>
                                             </div>
-                                        </div>
+                                        </a>
                                         <div class="friend-action-wrapper" id="tabFriendAction-@user.UserId">
                                             @if (user.FriendshipStatus == "Friends")
                                             {
@@ -229,13 +229,13 @@
                             @foreach (var post in Model.Posts)
                             {
                                 <div class="card border-0 shadow-sm rounded-3 p-3" id="postTabCard-@post.PostId">
-                                    <div class="d-flex align-items-center mb-2">
+                                    <a href="/Profile/View/@post.User?.Username" class="d-flex align-items-center mb-2 text-decoration-none text-dark">
                                         <img src="@post.User?.AvatarUrl" class="avatar avatar-sm rounded-circle me-2" style="width: 36px; height: 36px;" />
                                         <div>
                                             <h6 class="fw-bold text-dark mb-0">@post.User?.FullName</h6>
                                             <span class="text-muted extra-small">@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                                         </div>
-                                    </div>
+                                    </a>
                                     @if (!string.IsNullOrEmpty(post.Content))
                                     {
                                         <p class="card-text mb-2" style="white-space: pre-wrap;">@post.Content</p>

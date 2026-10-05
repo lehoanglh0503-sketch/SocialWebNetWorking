@@ -40,15 +40,112 @@ namespace Social_Website.Controllers
             var totalFriends = await _context.Friendships.CountAsync(f => 
                 (f.RequestorId == user.UserId || f.ReceiverId == user.UserId) && f.IsAccepted);
 
+            var posts = await _context.Posts
+                .Include(p => p.User)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments).ThenInclude(c => c.User)
+                .Where(p => p.UserId == user.UserId)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+            var friendIds = await _context.Friendships
+                .Where(f => f.IsAccepted && (f.RequestorId == user.UserId || f.ReceiverId == user.UserId))
+                .Select(f => f.RequestorId == user.UserId ? f.ReceiverId : f.RequestorId)
+                .ToListAsync();
+            var friendsList = await _context.Users.Where(u => friendIds.Contains(u.UserId)).ToListAsync();
+
             var viewModel = new ProfileViewModel
             {
                 User = user,
                 TotalPosts = totalPosts,
                 TotalComments = totalComments,
-                TotalFriends = totalFriends
+                TotalFriends = totalFriends,
+                FriendshipStatus = "Self",
+                Posts = posts,
+                FriendsList = friendsList
             };
 
             return View(viewModel);
+        }
+
+        [HttpGet("Profile/View/{username}")]
+        public async Task<IActionResult> ViewProfile(string username)
+        {
+            var currentUserId = this.GetCurrentUserId();
+            if (currentUserId == null)
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return View("NotFound");
+            }
+
+            var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Username.ToLower() == username.Trim().ToLower());
+            if (targetUser == null || targetUser.IsLocked)
+            {
+                return View("NotFound");
+            }
+
+            if (targetUser.UserId == currentUserId.Value)
+            {
+                return RedirectToAction("Index");
+            }
+
+            var totalPosts = await _context.Posts.CountAsync(p => p.UserId == targetUser.UserId);
+            var totalComments = await _context.Comments.CountAsync(c => c.UserId == targetUser.UserId);
+            var totalFriends = await _context.Friendships.CountAsync(f => 
+                (f.RequestorId == targetUser.UserId || f.ReceiverId == targetUser.UserId) && f.IsAccepted);
+
+            var friendship = await _context.Friendships.FirstOrDefaultAsync(f =>
+                (f.RequestorId == currentUserId.Value && f.ReceiverId == targetUser.UserId) ||
+                (f.RequestorId == targetUser.UserId && f.ReceiverId == currentUserId.Value));
+
+            string friendshipStatus = "None";
+            if (friendship != null)
+            {
+                if (friendship.IsAccepted)
+                {
+                    friendshipStatus = "Friends";
+                }
+                else if (friendship.RequestorId == currentUserId.Value)
+                {
+                    friendshipStatus = "PendingSent";
+                }
+                else
+                {
+                    friendshipStatus = "PendingReceived";
+                }
+            }
+
+            var posts = await _context.Posts
+                .Include(p => p.User)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments).ThenInclude(c => c.User)
+                .Where(p => p.UserId == targetUser.UserId)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+            var friendIds = await _context.Friendships
+                .Where(f => f.IsAccepted && (f.RequestorId == targetUser.UserId || f.ReceiverId == targetUser.UserId))
+                .Select(f => f.RequestorId == targetUser.UserId ? f.ReceiverId : f.RequestorId)
+                .ToListAsync();
+            var friendsList = await _context.Users.Where(u => friendIds.Contains(u.UserId)).ToListAsync();
+
+            var viewModel = new ProfileViewModel
+            {
+                User = targetUser,
+                TotalPosts = totalPosts,
+                TotalComments = totalComments,
+                TotalFriends = totalFriends,
+                FriendshipStatus = friendshipStatus,
+                Posts = posts,
+                FriendsList = friendsList
+            };
+
+            ViewBag.CurrentUser = await _context.Users.FindAsync(currentUserId.Value);
+            return View("ViewProfile", viewModel);
         }
 
         [HttpPost]

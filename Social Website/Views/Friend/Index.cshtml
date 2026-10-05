@@ -36,13 +36,13 @@
                             {
                                 <div class="col" id="friendCard-@friend.UserId">
                                     <div class="friend-item d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-sm me-2.5" />
-                                            <div>
-                                                <h6 class="fw-bold mb-0">@friend.FullName</h6>
-                                                <span class="text-muted small">@@@friend.Username</span>
+                                        <a href="/Profile/View/@friend.Username" class="d-flex align-items-center text-decoration-none text-dark overflow-hidden flex-grow-1 me-2">
+                                            <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-sm me-2.5 flex-shrink-0" />
+                                            <div class="overflow-hidden">
+                                                <h6 class="fw-bold mb-0 text-truncate">@friend.FullName</h6>
+                                                <span class="text-muted small text-truncate d-block">@@@friend.Username</span>
                                             </div>
-                                        </div>
+                                        </a>
                                         <button class="btn btn-outline-danger btn-sm px-3 btn-remove-friend" data-user-id="@friend.UserId">
                                             Hủy kết bạn
                                         </button>
@@ -69,13 +69,13 @@
                             {
                                 <div class="col" id="reqCard-@req.Requestor?.UserId">
                                     <div class="friend-item d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <img src="@req.Requestor?.AvatarUrl" alt="@req.Requestor?.FullName" class="avatar avatar-sm me-2.5" />
-                                            <div>
-                                                <h6 class="fw-bold mb-0">@req.Requestor?.FullName</h6>
-                                                <span class="text-muted small">@@@req.Requestor?.Username</span>
+                                        <a href="/Profile/View/@req.Requestor?.Username" class="d-flex align-items-center text-decoration-none text-dark overflow-hidden flex-grow-1 me-2">
+                                            <img src="@req.Requestor?.AvatarUrl" alt="@req.Requestor?.FullName" class="avatar avatar-sm me-2.5 flex-shrink-0" />
+                                            <div class="overflow-hidden">
+                                                <h6 class="fw-bold mb-0 text-truncate">@req.Requestor?.FullName</h6>
+                                                <span class="text-muted small text-truncate d-block">@@@req.Requestor?.Username</span>
                                             </div>
-                                        </div>
+                                        </a>
                                         <div class="d-flex gap-2">
                                             <button class="btn btn-primary btn-sm px-3 btn-accept" data-user-id="@req.Requestor?.UserId">
                                                 Đồng ý

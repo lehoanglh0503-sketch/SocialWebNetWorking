@@ -6,5 +6,8 @@ namespace Social_Website.Models
         public int TotalPosts { get; set; }
         public int TotalComments { get; set; }
         public int TotalFriends { get; set; }
+        public string FriendshipStatus { get; set; } = "None";
+        public List<Post> Posts { get; set; } = new();
+        public List<User> FriendsList { get; set; } = new();
     }
 }

@@ -1,0 +1,311 @@
+@using Social_Website.Helpers
+@model Social_Website.Models.ProfileViewModel
+@{
+    ViewData["Title"] = $"Hồ sơ của {Model.User.FullName}";
+    Layout = "_Layout";
+    var currentUser = ViewBag.CurrentUser as Social_Website.Models.User;
+}
+
+<style>
+    .profile-card {
+        border-radius: var(--border-radius, 16px);
+        background: var(--bg-card, #ffffff);
+        border: 1px solid var(--border-color, #e2e8f0);
+        box-shadow: var(--glass-shadow, 0 4px 20px rgba(0,0,0,0.05));
+        overflow: hidden;
+    }
+    
+    .profile-header-bg {
+        height: 140px;
+        background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+    }
+
+    .avatar-wrapper {
+        position: relative;
+        width: 110px;
+        height: 110px;
+        margin-top: -55px;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 50%;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .avatar-wrapper .avatar-img {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #ffffff;
+        background-color: var(--primary-light, #f0fdf4);
+    }
+
+    .stat-box {
+        border-radius: 12px;
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+    }
+    
+    .stat-box-clickable {
+        cursor: pointer;
+    }
+
+    .stat-box-clickable:hover {
+        background-color: #e0e7ff;
+        color: #4f46e5 !important;
+        transform: translateY(-2px);
+    }
+
+    .stat-box i {
+        font-size: 1.5rem;
+    }
+
+    .hover-underline:hover {
+        text-decoration: underline !important;
+    }
+</style>
+
+<div class="row py-3 animate-fade-in-up justify-content-center">
+    <!-- Cột thông tin cá nhân & Thống kê -->
+    <div class="col-lg-4 mb-4">
+        <div class="profile-card text-center pb-4 sticky-top" style="top: 80px; z-index: 10;">
+            <div class="profile-header-bg"></div>
+            
+            <div class="avatar-wrapper">
+                <img src="@Model.User.AvatarUrl" alt="@Model.User.FullName" class="avatar-img" />
+            </div>
+            
+            <h4 class="fw-bold mt-3 mb-1 text-dark">@Model.User.FullName</h4>
+            <p class="text-muted small mb-3">@@@Model.User.Username</p>
+            
+            <!-- Trạng thái kết bạn & Nhắn tin -->
+            <div class="d-flex justify-content-center gap-2 mb-4 px-3" id="friendActionWrapper">
+                @if (Model.FriendshipStatus == "Friends")
+                {
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 btn-remove-friend-action" data-user-id="@Model.User.UserId">
+                        <i class="bi bi-person-check-fill me-1"></i>Bạn bè
+                    </button>
+                    <button class="btn btn-primary btn-sm rounded-pill px-3 py-1.5 btn-open-chat" data-friend-id="@Model.User.UserId" data-friend-name="@Model.User.FullName" data-friend-avatar="@Model.User.AvatarUrl">
+                        <i class="bi bi-chat-dots-fill me-1"></i>Nhắn tin
+                    </button>
+                }
+                else if (Model.FriendshipStatus == "PendingSent")
+                {
+                    <button class="btn btn-secondary btn-sm rounded-pill px-3 py-1.5 btn-remove-friend-action" data-user-id="@Model.User.UserId">
+                        <i class="bi bi-person-dash me-1"></i>Hủy lời mời
+                    </button>
+                }
+                else if (Model.FriendshipStatus == "PendingReceived")
+                {
+                    <button class="btn btn-success btn-sm rounded-pill px-3 py-1.5 btn-accept-friend-action" data-user-id="@Model.User.UserId">
+                        <i class="bi bi-person-plus-fill me-1"></i>Chấp nhận
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-primary btn-sm rounded-pill px-3 py-1.5 btn-add-friend-action" data-user-id="@Model.User.UserId">
+                        <i class="bi bi-person-plus-fill me-1"></i>Thêm bạn bè
+                    </button>
+                }
+            </div>
+            
+            <!-- 3 ô thống kê (Bài đăng, Bình luận, Bạn bè) -->
+            <div class="px-4">
+                <div class="row g-2">
+                    <div class="col-4">
+                        <div class="stat-box stat-box-clickable p-3 text-secondary text-decoration-none d-block" onclick="scrollToPosts()">
+                            <i class="bi bi-chat-left-text-fill text-success"></i>
+                            <div class="fw-bold text-dark mt-1">@Model.TotalPosts</div>
+                            <div class="text-muted" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">Bài đăng</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-box p-3 text-secondary text-decoration-none d-block">
+                            <i class="bi bi-chat-dots-fill text-primary"></i>
+                            <div class="fw-bold text-dark mt-1">@Model.TotalComments</div>
+                            <div class="text-muted" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">Bình luận</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-box stat-box-clickable p-3 text-secondary text-decoration-none d-block" data-bs-toggle="modal" data-bs-target="#friendsModal">
+                            <i class="bi bi-people-fill text-warning"></i>
+                            <div class="fw-bold text-dark mt-1">@Model.TotalFriends</div>
+                            <div class="text-muted" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">Bạn bè</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cột bên phải: Danh sách bài viết của người dùng -->
+    <div class="col-lg-8" id="userPostsContainer">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="bi bi-file-post me-2 text-primary"></i>Bài viết của @Model.User.FullName
+            </h5>
+            <span class="badge bg-primary rounded-pill px-3">@Model.TotalPosts bài viết</span>
+        </div>
+
+        @if (Model.Posts != null && Model.Posts.Any())
+        {
+            foreach (var post in Model.Posts)
+            {
+                <div class="card card-hover mb-4 shadow-sm border-0 rounded-3" id="postCard-@post.PostId">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="@post.User?.AvatarUrl" alt="@post.User?.FullName" class="avatar avatar-sm me-3" />
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark">@post.User?.FullName</h6>
+                                <span class="text-muted small">@post.CreatedAt.ToVietnamTimeString()</span>
+                                @if (post.UpdatedAt != null)
+                                {
+                                    <span class="text-muted small ms-1" title="Đã chỉnh sửa lúc @post.UpdatedAt.Value.ToVietnamTimeString()">(đã chỉnh sửa)</span>
+                                }
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(post.Content))
+                        {
+                            <p class="card-text mb-3" style="white-space: pre-wrap;">@post.Content</p>
+                        }
+                        @if (!string.IsNullOrEmpty(post.ImageUrl))
+                        {
+                            var imgList = post.ImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                            if (imgList.Length == 1)
+                            {
+                                <div class="text-center mb-3">
+                                    <img src="@imgList[0]" class="img-fluid rounded shadow-sm" style="max-height: 400px; width: auto;" />
+                                </div>
+                            }
+                            else if (imgList.Length > 1)
+                            {
+                                <div class="row g-2 mb-3">
+                                    @foreach (var img in imgList)
+                                    {
+                                        <div class="col-@(imgList.Length == 2 ? "6" : imgList.Length == 3 ? "4" : "6")">
+                                            <img src="@img" class="img-fluid rounded shadow-sm w-100" style="height: 200px; object-fit: cover;" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm text-center py-5 rounded-3">
+                <div class="card-body">
+                    <i class="bi bi-file-earmark-x display-1 text-muted opacity-50 mb-3"></i>
+                    <h5 class="fw-bold text-dark">Chưa có bài viết nào</h5>
+                    <p class="text-muted small">Người dùng này chưa chia sẻ bài viết nào.</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal Danh sách bạn bè (M03) -->
+<div class="modal fade" id="friendsModal" tabindex="-1" aria-labelledby="friendsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="friendsModalLabel">
+                    <i class="bi bi-people-fill text-warning me-2"></i>Danh sách bạn bè (@Model.TotalFriends)
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                @if (Model.FriendsList != null && Model.FriendsList.Any())
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var friend in Model.FriendsList)
+                        {
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 hover-bg-light">
+                                <a href="/Profile/View/@friend.Username" class="d-flex align-items-center text-decoration-none text-dark flex-grow-1 overflow-hidden">
+                                    <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-md rounded-circle me-3 flex-shrink-0" style="width: 44px; height: 44px; object-fit: cover;" />
+                                    <div class="overflow-hidden">
+                                        <h6 class="fw-bold mb-0 text-truncate">@friend.FullName</h6>
+                                        <span class="text-muted small text-truncate d-block">@@@friend.Username</span>
+                                    </div>
+                                </a>
+                                <a href="/Profile/View/@friend.Username" class="btn btn-outline-primary btn-sm rounded-pill px-3 flex-shrink-0">
+                                    Xem hồ sơ
+                                </a>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-people display-4 opacity-50 mb-2 d-block"></i>
+                        <span>Chưa có bạn bè nào.</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function scrollToPosts() {
+            $('html, body').animate({
+                scrollTop: $("#userPostsContainer").offset().top - 90
+            }, 400);
+        }
+
+        $(document).ready(function () {
+            // Thêm bạn bè
+            $(document).on("click", ".btn-add-friend-action", function () {
+                const btn = $(this);
+                const userId = btn.data("user-id");
+                btn.prop("disabled", true);
+
+                $.post("/Friend/SendRequest", { receiverId: userId }, function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        alert(res.message);
+                        btn.prop("disabled", false);
+                    }
+                });
+            });
+
+            // Chấp nhận kết bạn
+            $(document).on("click", ".btn-accept-friend-action", function () {
+                const btn = $(this);
+                const userId = btn.data("user-id");
+                btn.prop("disabled", true);
+
+                $.post("/Friend/AcceptRequest", { requestorId: userId }, function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        alert(res.message);
+                        btn.prop("disabled", false);
+                    }
+                });
+            });
+
+            // Hủy bạn bè / Hủy lời mời
+            $(document).on("click", ".btn-remove-friend-action", function () {
+                const btn = $(this);
+                const userId = btn.data("user-id");
+                btn.prop("disabled", true);
+
+                $.post("/Friend/RemoveFriend", { friendId: userId }, function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        alert(res.message);
+                        btn.prop("disabled", false);
+                    }
+                });
+            });
+        });
+    </script>
+}
