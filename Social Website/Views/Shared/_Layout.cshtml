@@ -17,6 +17,8 @@
         var avatarUrl = Context.Session.GetString("AvatarUrl");
         var username = Context.Session.GetString("Username");
         var isAdmin = Context.Session.GetString("IsAdmin");
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
     }
     <input type="hidden" id="currentUserIdVal" value="@userId" />
     <header class="sticky-top">
@@ -42,12 +44,12 @@
                             @if (isAdmin != "True")
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">
+                                    <a class="nav-link @(currentController == "Home" && currentAction == "Index" ? "active text-primary fw-bold" : "text-dark fw-semibold")" asp-area="" asp-controller="Home" asp-action="Index">
                                         <i class="bi bi-house-door me-1"></i>Trang chủ
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Friend" asp-action="Index">
+                                    <a class="nav-link @(currentController == "Friend" ? "active text-primary fw-bold" : "text-dark fw-semibold")" asp-area="" asp-controller="Friend" asp-action="Index">
                                         <i class="bi bi-people me-1"></i>Bạn bè
                                     </a>
                                 </li>
@@ -55,17 +57,17 @@
                             else
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Admin" asp-action="Index">
+                                    <a class="nav-link @(currentController == "Admin" && currentAction == "Index" ? "active text-danger fw-bold" : "text-dark fw-semibold")" asp-area="" asp-controller="Admin" asp-action="Index">
                                         <i class="bi bi-flag-fill text-danger me-1"></i>Báo cáo & Thống kê
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Admin" asp-action="Users">
+                                    <a class="nav-link @(currentController == "Admin" && currentAction == "Users" ? "active text-danger fw-bold" : "text-dark fw-semibold")" asp-area="" asp-controller="Admin" asp-action="Users">
                                         <i class="bi bi-people-fill me-1"></i>Quản lý người dùng
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Admin" asp-action="BannedWords">
+                                    <a class="nav-link @(currentController == "Admin" && currentAction == "BannedWords" ? "active text-danger fw-bold" : "text-dark fw-semibold")" asp-area="" asp-controller="Admin" asp-action="BannedWords">
                                         <i class="bi bi-shield-slash-fill me-1"></i>Từ cấm
                                     </a>
                                 </li>
