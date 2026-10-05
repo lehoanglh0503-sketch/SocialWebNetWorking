@@ -101,12 +101,15 @@ namespace Social_Website.Controllers
             {
                 Content = hasContent ? content!.Trim() : string.Empty,
                 ImageUrl = imageUrl,
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
                 UserId = currentUser.UserId
             };
 
             _context.Posts.Add(post);
             await _context.SaveChangesAsync();
+
+            // Xử lý thông báo Tag nếu có trong bài viết
+            await ProcessTagsAndNotifyAsync(post.Content, currentUser.UserId, true, post.PostId);
 
             // Broadcast bài viết mới qua SignalR
             await _hubContext.Clients.All.SendAsync("ReceiveNewPost", new
@@ -114,7 +117,7 @@ namespace Social_Website.Controllers
                 postId = post.PostId,
                 content = post.Content,
                 imageUrl = post.ImageUrl,
-                createdAt = post.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
+                createdAt = post.CreatedAt.ToVietnamTimeString(),
                 fullName = currentUser.FullName,
                 avatarUrl = currentUser.AvatarUrl,
                 username = currentUser.Username,
@@ -159,7 +162,7 @@ namespace Social_Website.Controllers
             var comment = new Comment
             {
                 Content = content.Trim(),
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
                 PostId = postId,
                 UserId = currentUser.UserId,
                 ParentCommentId = parentCommentId
@@ -168,6 +171,46 @@ namespace Social_Website.Controllers
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
 
+            // Xử lý gửi thông báo cho bình luận và tag
+            var notifiedUserIds = new HashSet<long>();
+
+            // 1. Thông báo cho tác giả bài viết
+            if (currentUser.UserId != post.UserId)
+            {
+                await CreateAndSendNotificationAsync(post.UserId, currentUser.UserId, "CommentPost", $"{currentUser.FullName} đã bình luận bài viết của bạn.", $"/Home/Index#postCard-{postId}");
+                notifiedUserIds.Add(post.UserId);
+            }
+
+            // 2. Thông báo khi trả lời bình luận khác
+            if (parentCommentId != null)
+            {
+                var parentComment = await _context.Comments.FindAsync(parentCommentId.Value);
+                if (parentComment != null && currentUser.UserId != parentComment.UserId && !notifiedUserIds.Contains(parentComment.UserId))
+                {
+                    await CreateAndSendNotificationAsync(parentComment.UserId, currentUser.UserId, "ReplyComment", $"{currentUser.FullName} đã trả lời bình luận của bạn.", $"/Home/Index#postCard-{postId}");
+                    notifiedUserIds.Add(parentComment.UserId);
+                }
+            }
+
+            // 3. Thông báo cho người được tag (@username) trong bình luận
+            var matches = System.Text.RegularExpressions.Regex.Matches(content, @"@([a-zA-Z0-9_\.]+)");
+            if (matches.Count > 0)
+            {
+                var usernames = matches.Select(m => m.Groups[1].Value.ToLower()).Distinct().ToList();
+                var taggedUsers = await _context.Users
+                    .Where(u => usernames.Contains(u.Username.ToLower()) && u.UserId != currentUser.UserId)
+                    .ToListAsync();
+
+                foreach (var taggedUser in taggedUsers)
+                {
+                    if (!notifiedUserIds.Contains(taggedUser.UserId))
+                    {
+                        await CreateAndSendNotificationAsync(taggedUser.UserId, currentUser.UserId, "TagComment", $"{currentUser.FullName} đã nhắc đến bạn trong một bình luận.", $"/Home/Index#postCard-{postId}");
+                        notifiedUserIds.Add(taggedUser.UserId);
+                    }
+                }
+            }
+
             // Broadcast bình luận mới qua SignalR
             await _hubContext.Clients.All.SendAsync("ReceiveNewComment", new
             {
@@ -175,7 +218,7 @@ namespace Social_Website.Controllers
                 commentId = comment.CommentId,
                 parentCommentId = comment.ParentCommentId,
                 content = comment.Content,
-                createdAt = comment.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
+                createdAt = comment.CreatedAt.ToVietnamTimeString(),
                 fullName = currentUser.FullName,
                 avatarUrl = currentUser.AvatarUrl,
                 username = currentUser.Username,
@@ -184,6 +227,75 @@ namespace Social_Website.Controllers
             });
 
             return Json(new { success = true, commentId = comment.CommentId, parentCommentId = comment.ParentCommentId });
+        }
+
+        private async Task CreateAndSendNotificationAsync(long targetUserId, long actorId, string type, string message, string? targetUrl)
+        {
+            if (targetUserId == actorId || targetUserId <= 0) return;
+
+            var currentUser = await _context.Users.FindAsync(actorId);
+            if (currentUser == null) return;
+
+            var notification = new Notification
+            {
+                UserId = targetUserId,
+                ActorId = actorId,
+                Type = type,
+                Message = message,
+                TargetUrl = targetUrl,
+                CreatedAt = DateTime.UtcNow,
+                IsRead = false
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.Group($"User_{targetUserId}").SendAsync("ReceiveNotification", new
+            {
+                notificationId = notification.NotificationId,
+                type = notification.Type,
+                message = notification.Message,
+                isRead = notification.IsRead,
+                targetUrl = notification.TargetUrl,
+                createdAt = notification.CreatedAt.ToVietnamTimeString(),
+                timeAgo = "Vừa xong",
+                actor = new
+                {
+                    userId = currentUser.UserId,
+                    fullName = currentUser.FullName,
+                    avatarUrl = currentUser.AvatarUrl,
+                    username = currentUser.Username
+                }
+            });
+        }
+
+        private async Task ProcessTagsAndNotifyAsync(string? text, long actorId, bool isPost, long postId)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            var matches = System.Text.RegularExpressions.Regex.Matches(text, @"@([a-zA-Z0-9_\.]+)");
+            if (matches.Count == 0) return;
+
+            var currentUser = await _context.Users.FindAsync(actorId);
+            if (currentUser == null) return;
+
+            var usernames = matches.Select(m => m.Groups[1].Value.ToLower()).Distinct().ToList();
+            var taggedUsers = await _context.Users
+                .Where(u => usernames.Contains(u.Username.ToLower()) && u.UserId != actorId)
+                .ToListAsync();
+
+            string targetUrl = $"/Home/Index#postCard-{postId}";
+
+            foreach (var taggedUser in taggedUsers)
+            {
+                await CreateAndSendNotificationAsync(
+                    taggedUser.UserId,
+                    actorId,
+                    isPost ? "TagPost" : "TagComment",
+                    $"{currentUser.FullName} đã nhắc đến bạn trong một {(isPost ? "bài viết" : "bình luận")}.",
+                    targetUrl
+                );
+            }
         }
 
         [HttpPost]
@@ -237,6 +349,11 @@ namespace Social_Website.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            if (isLiked && comment.UserId != currentUser.UserId)
+            {
+                await CreateAndSendNotificationAsync(comment.UserId, currentUser.UserId, "LikeComment", $"{currentUser.FullName} đã thích bình luận của bạn.", $"/Home/Index#postCard-{comment.PostId}");
+            }
 
             var commentLikes = await _context.CommentLikes.Where(l => l.CommentId == commentId).ToListAsync();
             int totalCount = commentLikes.Count;
@@ -328,6 +445,11 @@ namespace Social_Website.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            if (isLiked && post.UserId != currentUser.UserId)
+            {
+                await CreateAndSendNotificationAsync(post.UserId, currentUser.UserId, "LikePost", $"{currentUser.FullName} đã thích bài viết của bạn.", $"/Home/Index#postCard-{postId}");
+            }
 
             var postLikes = await _context.PostLikes.Where(l => l.PostId == postId).ToListAsync();
             int totalCount = postLikes.Count;

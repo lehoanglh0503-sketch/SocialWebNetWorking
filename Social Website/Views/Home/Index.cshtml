@@ -1,3 +1,4 @@
+@using Social_Website.Helpers
 @model IEnumerable<Social_Website.Models.Post>
 @{
     ViewData["Title"] = "Trang chủ";
@@ -134,7 +135,7 @@
                                 <img src="@post.User?.AvatarUrl" alt="@post.User?.FullName" class="avatar avatar-sm me-3" />
                                 <div>
                                     <h6 class="fw-bold mb-0">@post.User?.FullName</h6>
-                                    <span class="text-muted small">@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <span class="text-muted small">@post.CreatedAt.ToVietnamTimeString()</span>
                                 </div>
                             </div>
                             <div class="dropdown">
@@ -318,7 +319,7 @@
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <span class="fw-bold">@comment.User?.FullName</span>
                                                     <div class="d-flex align-items-center gap-2">
-                                                        <span class="text-muted small">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                        <span class="text-muted small">@comment.CreatedAt.ToVietnamTimeString()</span>
                                                         @if (comment.UserId == currentUser?.UserId || post.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
                                                         {
                                                             <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="@comment.CommentId" title="Xóa bình luận" style="font-size: 0.8rem; line-height: 1;">
@@ -417,7 +418,7 @@
                                                         <div class="d-flex justify-content-between align-items-center">
                                                             <span class="fw-bold small">@reply.User?.FullName</span>
                                                             <div class="d-flex align-items-center gap-2">
-                                                                <span class="text-muted" style="font-size: 0.72rem;">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                                <span class="text-muted" style="font-size: 0.72rem;">@reply.CreatedAt.ToVietnamTimeString()</span>
                                                                 @if (reply.UserId == currentUser?.UserId || post.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
                                                                 {
                                                                     <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="@reply.CommentId" title="Xóa phản hồi" style="font-size: 0.75rem; line-height: 1;">

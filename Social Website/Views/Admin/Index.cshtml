@@ -1,3 +1,4 @@
+@using Social_Website.Helpers
 @model Social_Website.Models.AdminDashboardViewModel
 @{
     ViewData["Title"] = "Bảng quản trị";
@@ -233,9 +234,9 @@
                                     }
                                 </td>
                                 <td>
-                                    <div class="small fw-semibold text-dark text-nowrap">@post.CreatedAt.ToString("dd/MM/yyyy")</div>
+                                    <div class="small fw-semibold text-dark text-nowrap">@post.CreatedAt.ToVietnamTimeString("dd/MM/yyyy")</div>
                                     <div class="text-muted text-nowrap" style="font-size: 0.75rem;">
-                                        <i class="bi bi-clock me-1"></i>@post.CreatedAt.ToString("HH:mm")
+                                        <i class="bi bi-clock me-1"></i>@post.CreatedAt.ToVietnamTimeString("HH:mm")
                                     </div>
                                 </td>
                                 <td>
@@ -298,7 +299,7 @@
                                         @report.Reason
                                     </span>
                                     <div class="text-muted mt-1" style="font-size: 0.75rem;">
-                                        <i class="bi bi-clock me-1"></i>@report.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                        <i class="bi bi-clock me-1"></i>@report.CreatedAt.ToVietnamTimeString("dd/MM/yyyy HH:mm")
                                     </div>
                                 </td>
                                 <td>
