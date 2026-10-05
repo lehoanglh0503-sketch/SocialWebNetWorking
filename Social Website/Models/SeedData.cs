@@ -14,6 +14,11 @@ namespace Social_Website.Models
             try
             {
                 context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'LockReason')
+                    BEGIN
+                        ALTER TABLE [Users] ADD [LockReason] nvarchar(max) NULL;
+                    END
+
                     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Messages]') AND name = 'ImageUrl')
                     BEGIN
                         ALTER TABLE [Messages] ADD [ImageUrl] nvarchar(max) NULL;

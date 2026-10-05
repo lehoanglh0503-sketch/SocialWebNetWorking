@@ -190,6 +190,7 @@ namespace Social_Website.Controllers
                 if (author.ApprovedReportCount >= 3)
                 {
                     author.IsLocked = true;
+                    author.LockReason = "AutoViolation";
                     messageExtra = $" Tài khoản \"{author.FullName}\" đã đạt {author.ApprovedReportCount} lần vi phạm và ĐÃ BỊ KHÓA!";
                 }
                 else
@@ -228,6 +229,15 @@ namespace Social_Website.Controllers
             }
 
             user.IsLocked = !user.IsLocked;
+            if (user.IsLocked)
+            {
+                user.LockReason = "Manual";
+            }
+            else
+            {
+                user.LockReason = null;
+            }
+
             await _context.SaveChangesAsync();
 
             string statusText = user.IsLocked ? "đã bị khóa" : "đã được mở khóa";

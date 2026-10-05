@@ -23,6 +23,8 @@ namespace Social_Website.Models
         
         public bool IsLocked { get; set; } = false;
         
+        public string? LockReason { get; set; }
+        
         public int ApprovedReportCount { get; set; } = 0;
         
         public ICollection<Post> Posts { get; set; } = new List<Post>();

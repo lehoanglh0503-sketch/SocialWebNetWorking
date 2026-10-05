@@ -46,7 +46,14 @@ namespace Social_Website.Controllers
 
             if (user.IsLocked)
             {
-                ModelState.AddModelError("", "Tài khoản của bạn đã bị KHÓA do vi phạm tiêu chuẩn cộng đồng (đã có 3 lần báo cáo vi phạm được Admin phê duyệt). Vui lòng liên hệ Quản trị viên.");
+                if (user.LockReason == "Manual" || (string.IsNullOrEmpty(user.LockReason) && user.ApprovedReportCount < 3))
+                {
+                    ModelState.AddModelError("", "Tài khoản của bạn đã bị quản trị viên khóa.");
+                }
+                else
+                {
+                    ModelState.AddModelError("", "Tài khoản của bạn đã bị KHÓA do vi phạm tiêu chuẩn cộng đồng (đã có 3 lần báo cáo vi phạm được Admin phê duyệt). Vui lòng liên hệ Quản trị viên.");
+                }
                 return View();
             }
 
