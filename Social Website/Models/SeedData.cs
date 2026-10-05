@@ -65,6 +65,31 @@ namespace Social_Website.Models
                     BEGIN
                         INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES (N'20261005000000_AddNotificationsTable', N'6.0.25');
                     END
+
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Posts]') AND name = 'UpdatedAt')
+                    BEGIN
+                        ALTER TABLE [Posts] ADD [UpdatedAt] datetime2 NULL;
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SavedPosts')
+                    BEGIN
+                        CREATE TABLE [SavedPosts] (
+                            [SavedPostId] bigint NOT NULL IDENTITY,
+                            [UserId] bigint NOT NULL,
+                            [PostId] bigint NOT NULL,
+                            [SavedAt] datetime2 NOT NULL DEFAULT GETDATE(),
+                            CONSTRAINT [PK_SavedPosts] PRIMARY KEY ([SavedPostId]),
+                            CONSTRAINT [FK_SavedPosts_Posts_PostId] FOREIGN KEY ([PostId]) REFERENCES [Posts] ([PostId]) ON DELETE CASCADE,
+                            CONSTRAINT [FK_SavedPosts_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([UserId]) ON DELETE NO ACTION
+                        );
+                        CREATE INDEX [IX_SavedPosts_PostId] ON [SavedPosts] ([PostId]);
+                        CREATE UNIQUE INDEX [IX_SavedPosts_UserId_PostId] ON [SavedPosts] ([UserId], [PostId]);
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20261005010000_AddSavedPostsAndUpdatedAt')
+                    BEGIN
+                        INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES (N'20261005010000_AddSavedPostsAndUpdatedAt', N'6.0.25');
+                    END
                 ");
             }
             catch { }

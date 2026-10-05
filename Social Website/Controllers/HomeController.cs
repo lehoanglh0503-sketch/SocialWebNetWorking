@@ -55,8 +55,14 @@ namespace Social_Website.Controllers
                 .Select(f => f.RequestorId == currentUserId ? f.Receiver : f.Requestor)
                 .ToListAsync();
 
+            var savedPostIds = await _context.SavedPosts
+                .Where(sp => sp.UserId == currentUserId)
+                .Select(sp => sp.PostId)
+                .ToListAsync();
+
             ViewBag.CurrentUser = currentUser;
             ViewBag.Friends = friends;
+            ViewBag.SavedPostIds = savedPostIds;
 
             return View(posts);
         }

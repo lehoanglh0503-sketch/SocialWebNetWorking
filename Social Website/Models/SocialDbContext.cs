@@ -15,10 +15,40 @@ namespace Social_Website.Models
         public DbSet<Message> Messages => Set<Message>();
         public DbSet<BannedWord> BannedWords => Set<BannedWord>();
         public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
+        public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<SavedPost>()
+                .HasIndex(sp => new { sp.UserId, sp.PostId })
+                .IsUnique();
+
+            modelBuilder.Entity<SavedPost>()
+                .HasOne(sp => sp.User)
+                .WithMany()
+                .HasForeignKey(sp => sp.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SavedPost>()
+                .HasOne(sp => sp.Post)
+                .WithMany()
+                .HasForeignKey(sp => sp.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Actor)
+                .WithMany()
+                .HasForeignKey(n => n.ActorId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Friendship>()
                 .HasOne(f => f.Requestor)
