@@ -36,6 +36,30 @@ namespace Social_Website.Models
                     BEGIN
                         INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES (N'20260920000000_AddImageAndSharedPostToMessage', N'6.0.25');
                     END
+
+                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
+                    BEGIN
+                        CREATE TABLE [Notifications] (
+                            [NotificationId] bigint NOT NULL IDENTITY,
+                            [UserId] bigint NOT NULL,
+                            [ActorId] bigint NOT NULL,
+                            [Type] nvarchar(50) NOT NULL,
+                            [Message] nvarchar(500) NOT NULL,
+                            [IsRead] bit NOT NULL DEFAULT 0,
+                            [TargetUrl] nvarchar(max) NULL,
+                            [CreatedAt] datetime2 NOT NULL DEFAULT GETDATE(),
+                            CONSTRAINT [PK_Notifications] PRIMARY KEY ([NotificationId]),
+                            CONSTRAINT [FK_Notifications_Users_ActorId] FOREIGN KEY ([ActorId]) REFERENCES [Users] ([UserId]) ON DELETE NO ACTION,
+                            CONSTRAINT [FK_Notifications_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([UserId]) ON DELETE NO ACTION
+                        );
+                        CREATE INDEX [IX_Notifications_UserId] ON [Notifications] ([UserId]);
+                        CREATE INDEX [IX_Notifications_ActorId] ON [Notifications] ([ActorId]);
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20261005000000_AddNotificationsTable')
+                    BEGIN
+                        INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES (N'20261005000000_AddNotificationsTable', N'6.0.25');
+                    END
                 ");
             }
             catch { }
@@ -88,18 +112,11 @@ namespace Social_Website.Models
                 context.SaveChanges();
             }
 
-            // Làm mới toàn bộ bài viết, bình luận, tin nhắn, tương tác và người dùng cũ
-            context.Messages.RemoveRange(context.Messages);
-            context.PostReports.RemoveRange(context.PostReports);
-            context.CommentLikes.RemoveRange(context.CommentLikes);
-            context.Comments.RemoveRange(context.Comments);
-            context.PostLikes.RemoveRange(context.PostLikes);
-            context.Posts.RemoveRange(context.Posts);
-            context.Friendships.RemoveRange(context.Friendships);
-            
-            var nonAdminUsers = context.Users.Where(u => !u.IsAdmin).ToList();
-            context.Users.RemoveRange(nonAdminUsers);
-            context.SaveChanges();
+            // Chỉ seed dữ liệu người dùng và bài viết mẫu khi hệ thống chưa có người dùng nào (DB mới)
+            if (context.Users.Any(u => !u.IsAdmin))
+            {
+                return;
+            }
 
             // Mật khẩu mặc định cho tất cả người dùng: "123456"
             string defaultPasswordHash = HashPassword("123456");
