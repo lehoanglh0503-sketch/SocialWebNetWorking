@@ -1,7 +1,9 @@
+@using Social_Website.Helpers
 @model Social_Website.Models.ProfileViewModel
 @{
     ViewData["Title"] = "Trang cá nhân";
     Layout = "_Layout";
+    var currentUser = ViewBag.CurrentUser as Social_Website.Models.User ?? Model.User;
 }
 
 <style>
@@ -14,7 +16,7 @@
     }
     
     .profile-header-bg {
-        height: 120px;
+        height: 130px;
         background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
     }
 
@@ -69,6 +71,7 @@
         background-color: #f8fafc;
         border: 1px solid var(--border-color);
         transition: all 0.2s ease;
+        cursor: pointer;
     }
     
     .stat-box:hover {
@@ -110,12 +113,12 @@
 </div>
 
 <div class="row py-3 animate-fade-in-up">
-    <!-- Cột bên trái: Avatar & Thống kê -->
-    <div class="col-lg-4 mb-4">
-        <div class="profile-card text-center pb-4">
+    <!-- Cột bên trái: Avatar & Thống kê cá nhân (Sticky) -->
+    <div class="col-12 col-lg-4 mb-4">
+        <div class="profile-card text-center pb-4 profile-sticky-card">
             <div class="profile-header-bg"></div>
             
-            <div class="avatar-wrapper" onclick="triggerAvatarUpload()">
+            <div class="avatar-wrapper" onclick="triggerAvatarUpload()" title="Nhấp để đổi ảnh đại diện">
                 <img src="@Model.User.AvatarUrl" alt="@Model.User.FullName" id="avatarPreview" class="avatar-img" />
                 <div class="avatar-overlay">
                     <i class="bi bi-camera-fill fs-4"></i>
@@ -124,12 +127,19 @@
             </div>
             
             <h4 class="fw-bold mt-3 mb-1 text-dark" id="profileNameDisplay">@Model.User.FullName</h4>
-            <p class="text-muted small mb-4">@@@Model.User.Username</p>
+            <p class="text-muted small mb-3">@@@Model.User.Username</p>
+            @if (!string.IsNullOrEmpty(Model.User.Email))
+            {
+                <div class="badge bg-light text-muted border px-3 py-1.5 rounded-pill mb-3" style="font-weight: 500;">
+                    <i class="bi bi-envelope me-1"></i>@Model.User.Email
+                </div>
+            }
             
-            <div class="px-4">
+            <!-- 3 ô thống kê (Bài đăng, Bình luận, Bạn bè) -->
+            <div class="px-4 mb-4">
                 <div class="row g-2">
                     <div class="col-4">
-                        <div class="stat-box p-3 text-secondary text-decoration-none d-block cursor-pointer" style="cursor: pointer;" onclick="$('html, body').animate({scrollTop: $('#profileForm').offset().top - 90}, 400);">
+                        <div class="stat-box p-3 text-secondary text-decoration-none d-block" onclick="activateTab('tab-posts-nav')">
                             <i class="bi bi-chat-left-text-fill text-success"></i>
                             <div class="fw-bold text-dark mt-1 user-post-count-badge">@Model.TotalPosts</div>
                             <div class="text-muted" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">Bài đăng</div>
@@ -143,7 +153,7 @@
                         </div>
                     </div>
                     <div class="col-4">
-                        <div class="stat-box p-3 text-secondary text-decoration-none d-block cursor-pointer" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#myFriendsModal">
+                        <div class="stat-box p-3 text-secondary text-decoration-none d-block" onclick="activateTab('tab-friends-nav')">
                             <i class="bi bi-people-fill text-warning"></i>
                             <div class="fw-bold text-dark mt-1">@Model.TotalFriends</div>
                             <div class="text-muted" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">Bạn bè</div>
@@ -151,139 +161,261 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Quick Action Links -->
+            <div class="px-4 d-flex flex-column gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill py-2 fw-semibold d-flex align-items-center justify-content-center" onclick="activateTab('tab-posts-nav'); $('html, body').animate({scrollTop: $('#profilePostComposer').offset().top - 90}, 300); $('#profilePostContent').focus();">
+                    <i class="bi bi-pencil-square me-2"></i>Đăng bài viết mới
+                </button>
+                <button type="button" class="btn btn-light btn-sm rounded-pill py-2 text-muted fw-semibold border d-flex align-items-center justify-content-center" onclick="activateTab('tab-info-nav')">
+                    <i class="bi bi-person-gear me-2 text-primary"></i>Cài đặt thông tin tài khoản
+                </button>
+            </div>
         </div>
     </div>
+    
+    <!-- Cột bên phải: Tabs (Bài viết của tôi, Thông tin cá nhân, Đổi mật khẩu, Bạn bè) -->
+    <div class="col-12 col-lg-8">
+        <!-- Navigation Pills -->
+        <ul class="nav nav-pills profile-nav-pills bg-white p-2 rounded-4 shadow-sm border mb-4 gap-1 flex-nowrap overflow-auto" id="profileTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active d-flex align-items-center" id="tab-posts-nav" data-bs-toggle="pill" data-bs-target="#tab-posts" type="button" role="tab" aria-controls="tab-posts" aria-selected="true">
+                    <i class="bi bi-grid-3x3 me-2"></i>
+                    <span>Bài viết của tôi</span>
+                    <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill px-2">@Model.TotalPosts</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link d-flex align-items-center" id="tab-info-nav" data-bs-toggle="pill" data-bs-target="#tab-info" type="button" role="tab" aria-controls="tab-info" aria-selected="false">
+                    <i class="bi bi-person-lines-fill me-2"></i>
+                    <span>Thông tin</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link d-flex align-items-center" id="tab-password-nav" data-bs-toggle="pill" data-bs-target="#tab-password" type="button" role="tab" aria-controls="tab-password" aria-selected="false">
+                    <i class="bi bi-shield-lock-fill me-2"></i>
+                    <span>Đổi mật khẩu</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link d-flex align-items-center" id="tab-friends-nav" data-bs-toggle="pill" data-bs-target="#tab-friends" type="button" role="tab" aria-controls="tab-friends" aria-selected="false">
+                    <i class="bi bi-people-fill me-2"></i>
+                    <span>Bạn bè</span>
+                    <span class="badge bg-warning-subtle text-warning-emphasis ms-2 rounded-pill px-2">@Model.TotalFriends</span>
+                </button>
+            </li>
+        </ul>
 
-    <!-- Modal Danh sách bạn bè -->
-    <div class="modal fade" id="myFriendsModal" tabindex="-1" aria-labelledby="myFriendsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow" style="border-radius: 16px;">
-                <div class="modal-header border-bottom-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="myFriendsModalLabel">
-                        <i class="bi bi-people-fill text-warning me-2"></i>Danh sách bạn bè (@Model.TotalFriends)
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="tab-content" id="profileTabContent">
+            <!-- TAB 1: BÀI VIẾT CỦA TÔI -->
+            <div class="tab-pane fade show active" id="tab-posts" role="tabpanel" aria-labelledby="tab-posts-nav">
+                <!-- Card viết bài mới trên trang cá nhân -->
+                <div class="card mb-4 shadow-sm border-0 rounded-4" id="profilePostComposer">
+                    <div class="card-body p-4">
+                        <div class="d-flex mb-3">
+                            <img src="@Model.User.AvatarUrl" alt="@Model.User.FullName" class="avatar avatar-sm me-3" />
+                            <div class="w-100">
+                                <form id="profileCreatePostForm">
+                                    <textarea id="profilePostContent" class="form-control post-input w-100" rows="3" placeholder="Chia sẻ suy nghĩ của bạn trên trang cá nhân..."></textarea>
+                                    
+                                    <div id="profilePostAlert" class="alert alert-danger d-none mt-2 mb-0 animate-fade-in-up" role="alert" style="border-radius: 12px; font-size: 0.85rem;">
+                                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                        <span id="profilePostAlertMsg"></span>
+                                    </div>
+                                    
+                                    <div id="profileImagePreviewArea" class="mt-3 row g-2 d-none"></div>
+
+                                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                        <div class="d-flex gap-2">
+                                            <input type="file" id="profilePostImages" multiple accept="image/*" class="d-none" />
+                                            <label for="profilePostImages" class="btn btn-light btn-sm text-primary fw-semibold rounded-pill px-3 cursor-pointer mb-0">
+                                                <i class="bi bi-images me-1 fs-6"></i>Thêm ảnh
+                                            </label>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4" id="btnSubmitProfilePost">
+                                            <i class="bi bi-send-fill me-1"></i>Đăng bài
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-body p-3">
+
+                <!-- Danh sách bài viết -->
+                <div id="profileFeedContainer">
+                    @if (Model.Posts != null && Model.Posts.Any())
+                    {
+                        foreach (var post in Model.Posts)
+                        {
+                            <partial name="_PostCard" model="post" />
+                        }
+                    }
+                    else
+                    {
+                        <div class="card border-0 shadow-sm text-center py-5 rounded-4 mb-4">
+                            <div class="card-body">
+                                <i class="bi bi-file-earmark-post display-2 text-muted opacity-50 mb-3 d-block"></i>
+                                <h5 class="fw-bold text-dark">Chưa có bài viết nào</h5>
+                                <p class="text-muted small mb-3">Bạn chưa đăng bài viết nào trên trang cá nhân. Hãy tạo bài viết đầu tiên ngay!</p>
+                                <button type="button" class="btn btn-primary rounded-pill px-4" onclick="$('#profilePostContent').focus();">
+                                    <i class="bi bi-plus-circle me-1"></i>Đăng bài ngay
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- TAB 2: THÔNG TIN CÁ NHÂN -->
+            <div class="tab-pane fade" id="tab-info" role="tabpanel" aria-labelledby="tab-info-nav">
+                <div class="profile-card p-4 mb-4">
+                    <h5 class="form-section-title mb-4"><i class="bi bi-person-fill text-primary me-2"></i>Thông tin cá nhân</h5>
+                    
+                    <form id="profileForm" enctype="multipart/form-data">
+                        <input type="file" id="avatarUploadInput" name="avatarFile" style="display: none;" accept="image/*" onchange="previewImage(event)" />
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-muted small">Tên tài khoản (Không thể thay đổi)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted">@@</span>
+                                <input type="text" class="form-control bg-light text-muted" value="@Model.User.Username" readonly />
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="fullNameInput" class="form-label fw-semibold text-muted small">Họ tên đầy đủ</label>
+                            <input type="text" id="fullNameInput" name="fullName" class="form-control form-control-modern" value="@Model.User.FullName" required minlength="2" maxlength="100" />
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="emailInput" class="form-label fw-semibold text-muted small">Địa chỉ Email (Dùng để đặt lại mật khẩu)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-muted"><i class="bi bi-envelope"></i></span>
+                                <input type="email" id="emailInput" name="email" class="form-control form-control-modern border-start-0" value="@Model.User.Email" placeholder="Bổ sung địa chỉ email..." />
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary px-4 rounded-pill" id="saveProfileBtn">
+                            <span class="spinner-border spinner-border-sm me-2 d-none" role="status" id="profileSpinner"></span>
+                            <i class="bi bi-check-circle me-1" id="profileIcon"></i>Lưu thay đổi
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 3: BẢO MẬT & MẬT KHẨU -->
+            <div class="tab-pane fade" id="tab-password" role="tabpanel" aria-labelledby="tab-password-nav">
+                <div class="profile-card p-4 mb-4">
+                    <h5 class="form-section-title mb-4"><i class="bi bi-shield-lock-fill text-danger me-2"></i>Bảo mật & Mật khẩu</h5>
+                    
+                    <form id="passwordForm">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label fw-semibold text-muted small">Mật khẩu hiện tại</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-lock text-muted"></i></span>
+                                <input type="password" id="currentPassword" name="currentPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required />
+                                <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#currentPassword" title="Hiện mật khẩu">
+                                    <i class="bi bi-eye-fill"></i>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="newPassword" class="form-label fw-semibold text-muted small">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-key text-muted"></i></span>
+                                    <input type="password" id="newPassword" name="newPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required minlength="6" />
+                                    <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#newPassword" title="Hiện mật khẩu">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="confirmPassword" class="form-label fw-semibold text-muted small">Xác nhận mật khẩu mới</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-shield-check text-muted"></i></span>
+                                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required />
+                                    <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#confirmPassword" title="Hiện mật khẩu">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-outline-danger px-4 rounded-pill" id="changePasswordBtn">
+                            <span class="spinner-border spinner-border-sm me-2 d-none" role="status" id="passwordSpinner"></span>
+                            <i class="bi bi-key me-1" id="passwordIcon"></i>Cập nhật mật khẩu
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 4: BẠN BÈ -->
+            <div class="tab-pane fade" id="tab-friends" role="tabpanel" aria-labelledby="tab-friends-nav">
+                <div class="profile-card p-4 mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <h5 class="form-section-title mb-0 border-bottom-0 pb-0">
+                            <i class="bi bi-people-fill text-warning me-2"></i>Danh sách bạn bè (@Model.TotalFriends)
+                        </h5>
+                        <a href="/Friend" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                            <i class="bi bi-person-plus me-1"></i>Quản lý bạn bè
+                        </a>
+                    </div>
+                    
                     @if (Model.FriendsList != null && Model.FriendsList.Any())
                     {
-                        <div class="d-flex flex-column gap-2">
+                        <div class="row g-3">
                             @foreach (var friend in Model.FriendsList)
                             {
-                                <div class="d-flex align-items-center justify-content-between p-2 rounded-3 hover-bg-light">
-                                    <a href="/Profile/View/@friend.Username" class="d-flex align-items-center text-decoration-none text-dark flex-grow-1 overflow-hidden">
-                                        <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar avatar-md rounded-circle me-3 flex-shrink-0" style="width: 44px; height: 44px; object-fit: cover;" />
-                                        <div class="overflow-hidden">
-                                            <h6 class="fw-bold mb-0 text-truncate">@friend.FullName</h6>
-                                            <span class="text-muted small text-truncate d-block">@@@friend.Username</span>
+                                <div class="col-12 col-md-6">
+                                    <div class="d-flex align-items-center justify-content-between p-3 rounded-4 border bg-light hover-bg-light transition-all">
+                                        <a href="/Profile/View/@friend.Username" class="d-flex align-items-center text-decoration-none text-dark flex-grow-1 overflow-hidden me-2">
+                                            <img src="@friend.AvatarUrl" alt="@friend.FullName" class="avatar rounded-circle me-3 flex-shrink-0" style="width: 46px; height: 46px; object-fit: cover;" />
+                                            <div class="overflow-hidden">
+                                                <h6 class="fw-bold mb-0 text-truncate">@friend.FullName</h6>
+                                                <span class="text-muted small text-truncate d-block">@@@friend.Username</span>
+                                            </div>
+                                        </a>
+                                        <div class="d-flex gap-1 flex-shrink-0">
+                                            <a href="/Profile/View/@friend.Username" class="btn btn-outline-primary btn-sm rounded-pill px-2.5" title="Xem hồ sơ">
+                                                <i class="bi bi-person"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-2.5 btn-open-chat" data-friend-id="@friend.UserId" data-friend-name="@friend.FullName" data-friend-avatar="@friend.AvatarUrl" title="Nhắn tin">
+                                                <i class="bi bi-chat-dots-fill"></i>
+                                            </button>
                                         </div>
-                                    </a>
-                                    <a href="/Profile/View/@friend.Username" class="btn btn-outline-primary btn-sm rounded-pill px-3 flex-shrink-0">
-                                        Xem hồ sơ
-                                    </a>
+                                    </div>
                                 </div>
                             }
                         </div>
                     }
                     else
                     {
-                        <div class="text-center py-4 text-muted">
-                            <i class="bi bi-people display-4 opacity-50 mb-2 d-block"></i>
-                            <span>Bạn chưa có bạn bè nào.</span>
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-people display-3 opacity-50 mb-2 d-block"></i>
+                            <h6 class="fw-bold text-dark">Bạn chưa có bạn bè nào</h6>
+                            <p class="small text-muted mb-3">Hãy tìm kiếm và kết bạn với mọi người để cùng chia sẻ nhé!</p>
+                            <a href="/Friend" class="btn btn-primary btn-sm rounded-pill px-4">Tìm bạn bè</a>
                         </div>
                     }
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Cột bên phải: Cài đặt thông tin & Mật khẩu -->
-    <div class="col-lg-8">
-        <!-- Form cập nhật thông tin -->
-        <div class="profile-card p-4 mb-4">
-            <h5 class="form-section-title mb-4"><i class="bi bi-person-fill text-primary me-2"></i>Thông tin cá nhân</h5>
-            
-            <form id="profileForm" enctype="multipart/form-data">
-                <input type="file" id="avatarUploadInput" name="avatarFile" style="display: none;" accept="image/*" onchange="previewImage(event)" />
-                
-                <div class="mb-3">
-                    <label class="form-label fw-semibold text-muted small">Tên tài khoản (Không thể thay đổi)</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light text-muted">@@</span>
-                        <input type="text" class="form-control bg-light text-muted" value="@Model.User.Username" readonly />
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="fullNameInput" class="form-label fw-semibold text-muted small">Họ tên đầy đủ</label>
-                    <input type="text" id="fullNameInput" name="fullName" class="form-control form-control-modern" value="@Model.User.FullName" required minlength="2" maxlength="100" />
-                </div>
-                
-                <div class="mb-4">
-                    <label for="emailInput" class="form-label fw-semibold text-muted small">Địa chỉ Email (Dùng để đặt lại mật khẩu)</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-white text-muted"><i class="bi bi-envelope"></i></span>
-                        <input type="email" id="emailInput" name="email" class="form-control form-control-modern border-start-0" value="@Model.User.Email" placeholder="Bổ sung địa chỉ email..." />
-                    </div>
-                </div>
-                
-                <button type="submit" class="btn btn-primary px-4" id="saveProfileBtn">
-                    <span class="spinner-border spinner-border-sm me-2 d-none" role="status" id="profileSpinner"></span>
-                    <i class="bi bi-check-circle me-1" id="profileIcon"></i>Lưu thay đổi
-                </button>
-            </form>
-        </div>
-        
-        <!-- Form đổi mật khẩu -->
-        <div class="profile-card p-4">
-            <h5 class="form-section-title mb-4"><i class="bi bi-shield-lock-fill text-danger me-2"></i>Bảo mật & Mật khẩu</h5>
-            
-            <form id="passwordForm">
-                <div class="mb-3">
-                    <label for="currentPassword" class="form-label fw-semibold text-muted small">Mật khẩu hiện tại</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-lock text-muted"></i></span>
-                        <input type="password" id="currentPassword" name="currentPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required />
-                        <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#currentPassword" title="Hiện mật khẩu">
-                            <i class="bi bi-eye-fill"></i>
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-6 mb-3 mb-md-0">
-                        <label for="newPassword" class="form-label fw-semibold text-muted small">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-key text-muted"></i></span>
-                            <input type="password" id="newPassword" name="newPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required minlength="6" />
-                            <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#newPassword" title="Hiện mật khẩu">
-                                <i class="bi bi-eye-fill"></i>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="confirmPassword" class="form-label fw-semibold text-muted small">Xác nhận mật khẩu mới</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-shield-check text-muted"></i></span>
-                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-control form-control-modern border-start-0 border-end-0" placeholder="••••••••" required />
-                            <span class="input-group-text bg-white border-start-0 text-muted toggle-password-btn" data-target="#confirmPassword" title="Hiện mật khẩu">
-                                <i class="bi bi-eye-fill"></i>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                
-                <button type="submit" class="btn btn-outline-danger px-4" id="changePasswordBtn">
-                    <span class="spinner-border spinner-border-sm me-2 d-none" role="status" id="passwordSpinner"></span>
-                    <i class="bi bi-key me-1" id="passwordIcon"></i>Cập nhật mật khẩu
-                </button>
-            </form>
-        </div>
-    </div>
 </div>
 
 @section Scripts {
     <script>
+        function activateTab(tabId) {
+            const tabEl = document.getElementById(tabId);
+            if (tabEl) {
+                const tab = new bootstrap.Tab(tabEl);
+                tab.show();
+            }
+        }
+
         function triggerAvatarUpload() {
             document.getElementById('avatarUploadInput').click();
         }
@@ -299,42 +431,30 @@
             }
         }
 
-        function showToast(message, isSuccess = true) {
+        function showProfileToast(message, isSuccess = true) {
             const toastEl = document.getElementById('profileToast');
-            const toastMessage = document.getElementById('toastMessage');
-            const toastIcon = document.querySelector('#profileToast .bi');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
             
-            toastMessage.textContent = message;
+            toastEl.className = 'toast align-items-center text-white border-0 shadow ' + (isSuccess ? 'bg-success' : 'bg-danger');
+            toastIcon.className = 'bi me-2 ' + (isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill');
+            toastMsg.innerText = message;
             
-            if (isSuccess) {
-                toastEl.classList.remove('bg-danger');
-                toastEl.classList.add('bg-success');
-                toastIcon.className = 'bi bi-check-circle-fill me-2';
-            } else {
-                toastEl.classList.remove('bg-success');
-                toastEl.classList.add('bg-danger');
-                toastIcon.className = 'bi bi-exclamation-triangle-fill me-2';
-            }
-            
-            const toast = new bootstrap.Toast(toastEl);
+            const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
             toast.show();
         }
 
         $(document).ready(function () {
-            // Xử lý cập nhật thông tin cá nhân (bao gồm avatar)
+            // 1. Submit Form cập nhật thông tin cá nhân
             $('#profileForm').on('submit', function (e) {
                 e.preventDefault();
+                const btn = $('#saveProfileBtn');
+                const spinner = $('#profileSpinner');
+                const icon = $('#profileIcon');
                 
-                const fullName = $('#fullNameInput').val().trim();
-                if (!fullName) {
-                    showToast('Họ tên không được để trống', false);
-                    return;
-                }
-                
-                // Show loading
-                $('#profileSpinner').removeClass('d-none');
-                $('#profileIcon').addClass('d-none');
-                $('#saveProfileBtn').prop('disabled', true);
+                btn.prop('disabled', true);
+                spinner.removeClass('d-none');
+                icon.addClass('d-none');
                 
                 const formData = new FormData(this);
                 
@@ -345,82 +465,148 @@
                     processData: false,
                     contentType: false,
                     success: function (res) {
-                        $('#profileSpinner').addClass('d-none');
-                        $('#profileIcon').removeClass('d-none');
-                        $('#saveProfileBtn').prop('disabled', false);
+                        btn.prop('disabled', false);
+                        spinner.addClass('d-none');
+                        icon.removeClass('d-none');
                         
                         if (res.success) {
-                            showToast(res.message, true);
-                            $('#profileNameDisplay').text(res.fullName);
-                            
-                            // Cập nhật avatar và tên trên Header ngay lập tức
-                            $('#dropdownUser img').attr('src', res.avatarUrl);
-                            $('#dropdownUser span').text(res.fullName);
-                            
-                            // Reset file input
-                            $('#avatarUploadInput').val('');
+                            showProfileToast(res.message, true);
+                            $('#profileNameDisplay').text($('#fullNameInput').val());
+                            if (res.newAvatarUrl) {
+                                $('#avatarPreview').src = res.newAvatarUrl;
+                            }
                         } else {
-                            showToast(res.message, false);
+                            showProfileToast(res.message, false);
                         }
                     },
                     error: function () {
-                        $('#profileSpinner').addClass('d-none');
-                        $('#profileIcon').removeClass('d-none');
-                        $('#saveProfileBtn').prop('disabled', false);
-                        showToast('Có lỗi xảy ra khi kết nối tới máy chủ', false);
+                        btn.prop('disabled', false);
+                        spinner.addClass('d-none');
+                        icon.removeClass('d-none');
+                        showProfileToast("Đã có lỗi hệ thống xảy ra. Vui lòng thử lại!", false);
                     }
                 });
             });
 
-            // Xử lý đổi mật khẩu
+            // 2. Submit Form đổi mật khẩu
             $('#passwordForm').on('submit', function (e) {
                 e.preventDefault();
+                const btn = $('#changePasswordBtn');
+                const spinner = $('#passwordSpinner');
+                const icon = $('#passwordIcon');
                 
-                const currentPassword = $('#currentPassword').val();
-                const newPassword = $('#newPassword').val();
-                const confirmPassword = $('#confirmPassword').val();
+                const currPass = $('#currentPassword').val();
+                const newPass = $('#newPassword').val();
+                const confirmPass = $('#confirmPassword').val();
                 
-                if (newPassword.length < 6) {
-                    showToast('Mật khẩu mới phải có tối thiểu 6 ký tự', false);
+                if (newPass !== confirmPass) {
+                    showProfileToast("Mật khẩu mới và xác nhận mật khẩu không khớp!", false);
                     return;
                 }
                 
-                if (newPassword !== confirmPassword) {
-                    showToast('Xác nhận mật khẩu mới không trùng khớp', false);
+                btn.prop('disabled', true);
+                spinner.removeClass('d-none');
+                icon.addClass('d-none');
+                
+                $.post('/Profile/ChangePassword', {
+                    currentPassword: currPass,
+                    newPassword: newPass,
+                    confirmPassword: confirmPass
+                }, function (res) {
+                    btn.prop('disabled', false);
+                    spinner.addClass('d-none');
+                    icon.removeClass('d-none');
+                    
+                    if (res.success) {
+                        showProfileToast(res.message, true);
+                        $('#passwordForm')[0].reset();
+                    } else {
+                        showProfileToast(res.message, false);
+                    }
+                }).fail(function () {
+                    btn.prop('disabled', false);
+                    spinner.addClass('d-none');
+                    icon.removeClass('d-none');
+                    showProfileToast("Đã có lỗi hệ thống xảy ra. Vui lòng thử lại!", false);
+                });
+            });
+
+            // 3. Post composer trên trang cá nhân
+            let profileFiles = [];
+            $('#profilePostImages').on('change', function () {
+                const files = Array.from(this.files);
+                profileFiles = profileFiles.concat(files);
+                renderProfilePreviews();
+            });
+
+            function renderProfilePreviews() {
+                const area = $('#profileImagePreviewArea');
+                area.empty();
+                if (profileFiles.length === 0) {
+                    area.addClass('d-none');
                     return;
                 }
-                
-                // Show loading
-                $('#passwordSpinner').removeClass('d-none');
-                $('#passwordIcon').addClass('d-none');
-                $('#changePasswordBtn').prop('disabled', true);
-                
+                area.removeClass('d-none');
+                profileFiles.forEach((f, idx) => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        area.append(`
+                            <div class="col-3 position-relative">
+                                <img src="${e.target.result}" class="img-fluid rounded shadow-sm w-100" style="height: 90px; object-fit: cover;" />
+                                <button type="button" class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 p-0 shadow" style="width: 22px; height: 22px; line-height: 1; transform: translate(20%, -20%);" onclick="removeProfileImg(${idx})">&times;</button>
+                            </div>
+                        `);
+                    };
+                    reader.readAsDataURL(f);
+                });
+            }
+
+            window.removeProfileImg = function(idx) {
+                profileFiles.splice(idx, 1);
+                renderProfilePreviews();
+            };
+
+            $('#profileCreatePostForm').on('submit', function (e) {
+                e.preventDefault();
+                const content = $('#profilePostContent').val();
+                if ((!content || content.trim().length === 0) && profileFiles.length === 0) {
+                    return;
+                }
+
+                const btn = $('#btnSubmitProfilePost');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang đăng...');
+
+                const formData = new FormData();
+                formData.append('content', content);
+                profileFiles.forEach(f => formData.append('images', f));
+
                 $.ajax({
-                    url: '/Profile/ChangePassword',
+                    url: '/Post/CreatePost',
                     type: 'POST',
-                    data: {
-                        currentPassword: currentPassword,
-                        newPassword: newPassword,
-                        confirmPassword: confirmPassword
-                    },
+                    data: formData,
+                    processData: false,
+                    contentType: false,
                     success: function (res) {
-                        $('#passwordSpinner').addClass('d-none');
-                        $('#passwordIcon').removeClass('d-none');
-                        $('#changePasswordBtn').prop('disabled', false);
-                        
+                        btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i>Đăng bài');
                         if (res.success) {
-                            showToast(res.message, true);
-                            // Clear form
-                            $('#passwordForm')[0].reset();
+                            $('#profilePostContent').val('');
+                            profileFiles = [];
+                            $('#profileImagePreviewArea').empty().addClass('d-none');
+                            $('#profilePostAlert').addClass('d-none');
+                            showProfileToast("Đăng bài viết thành công!", true);
+                            setTimeout(() => window.location.reload(), 600);
                         } else {
-                            showToast(res.message, false);
+                            if (res.detectedWords && res.detectedWords.length > 0) {
+                                $('#profilePostAlertMsg').text("Bài viết chứa từ ngữ vi phạm: " + res.detectedWords.join(', '));
+                                $('#profilePostAlert').removeClass('d-none');
+                            } else {
+                                showProfileToast(res.message, false);
+                            }
                         }
                     },
                     error: function () {
-                        $('#passwordSpinner').addClass('d-none');
-                        $('#passwordIcon').removeClass('d-none');
-                        $('#changePasswordBtn').prop('disabled', false);
-                        showToast('Có lỗi xảy ra khi kết nối tới máy chủ', false);
+                        btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i>Đăng bài');
+                        showProfileToast("Lỗi khi kết nối tới máy chủ!", false);
                     }
                 });
             });

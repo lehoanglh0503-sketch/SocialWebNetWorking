@@ -82,6 +82,115 @@ namespace Social_Website.Controllers
             return Json(new { success = true, message = $"Đã thay đổi mật khẩu cho người dùng \"{user.FullName}\" thành công!" });
         }
 
+        private static void DeletePhysicalFile(string? relativeUrl)
+        {
+            if (string.IsNullOrWhiteSpace(relativeUrl)) return;
+            try
+            {
+                var relativePath = relativeUrl.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar);
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath);
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+            }
+            catch { }
+        }
+
+        private async Task DeleteSinglePostInternalAsync(Post post)
+        {
+            long postId = post.PostId;
+
+            // 1. Gỡ SharedPostId ở Messages
+            var sharedMessages = await _context.Messages
+                .Where(m => m.SharedPostId == postId)
+                .ToListAsync();
+            foreach (var m in sharedMessages)
+            {
+                m.SharedPostId = null;
+            }
+
+            // 2. Xóa SavedPosts liên quan
+            var savedPosts = await _context.SavedPosts
+                .Where(sp => sp.PostId == postId)
+                .ToListAsync();
+            _context.SavedPosts.RemoveRange(savedPosts);
+
+            // 3. Xóa Báo cáo liên quan
+            var reports = await _context.PostReports
+                .Where(pr => pr.PostId == postId)
+                .ToListAsync();
+            _context.PostReports.RemoveRange(reports);
+
+            // 4. Xóa PostLikes liên quan
+            var likes = await _context.PostLikes
+                .Where(pl => pl.PostId == postId)
+                .ToListAsync();
+            _context.PostLikes.RemoveRange(likes);
+
+            // 5. Xử lý Bình luận và Trả lời bình luận trên bài viết
+            var postComments = await _context.Comments
+                .Where(c => c.PostId == postId)
+                .ToListAsync();
+            var commentIds = postComments.Select(c => c.CommentId).ToList();
+
+            if (commentIds.Any())
+            {
+                // Ngắt liên kết ParentCommentId cho các phản hồi ngoài (nếu có)
+                var externalReplies = await _context.Comments
+                    .Where(c => c.ParentCommentId.HasValue &&
+                                commentIds.Contains(c.ParentCommentId.Value) &&
+                                !commentIds.Contains(c.CommentId))
+                    .ToListAsync();
+                foreach (var r in externalReplies)
+                {
+                    r.ParentCommentId = null;
+                }
+
+                // Gỡ ParentCommentId của chính các bình luận trong bài viết để tránh lỗi Restrict
+                foreach (var c in postComments)
+                {
+                    c.ParentCommentId = null;
+                }
+                await _context.SaveChangesAsync();
+
+                // Xóa CommentLikes
+                var commentLikes = await _context.CommentLikes
+                    .Where(cl => commentIds.Contains(cl.CommentId))
+                    .ToListAsync();
+                _context.CommentLikes.RemoveRange(commentLikes);
+
+                // Xóa Comments
+                _context.Comments.RemoveRange(postComments);
+                await _context.SaveChangesAsync();
+            }
+
+            // 6. Xóa PostImages và file vật lý
+            var postImages = await _context.PostImages
+                .Where(pi => pi.PostId == postId)
+                .ToListAsync();
+            foreach (var img in postImages)
+            {
+                DeletePhysicalFile(img.ImageUrl);
+            }
+            _context.PostImages.RemoveRange(postImages);
+
+            if (!string.IsNullOrEmpty(post.ImageUrl))
+            {
+                foreach (var url in post.ImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    DeletePhysicalFile(url);
+                }
+            }
+            if (!string.IsNullOrEmpty(post.VideoUrl))
+            {
+                DeletePhysicalFile(post.VideoUrl);
+            }
+
+            // 7. Xóa bài viết
+            _context.Posts.Remove(post);
+        }
+
         [HttpPost]
         public async Task<IActionResult> DeleteUser(long id)
         {
@@ -100,34 +209,129 @@ namespace Social_Website.Controllers
                 return Json(new { success = false, message = "Không tìm thấy người dùng" });
             }
 
-            // Xóa thủ công toàn bộ các ràng buộc khóa ngoại trước để tránh lỗi do Delete Behavior Restrict
-            
-            // 1. Xóa tất cả các lượt kết bạn mà user tham gia
-            var friendships = _context.Friendships.Where(f => f.RequestorId == id || f.ReceiverId == id);
-            _context.Friendships.RemoveRange(friendships);
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // 1. Xóa tất cả các lượt kết bạn mà user tham gia
+                var friendships = await _context.Friendships
+                    .Where(f => f.RequestorId == id || f.ReceiverId == id)
+                    .ToListAsync();
+                _context.Friendships.RemoveRange(friendships);
 
-            // 2. Xóa các lượt thích (likes) mà user đã thả tim ở các bài viết khác
-            var likes = _context.PostLikes.Where(l => l.UserId == id);
-            _context.PostLikes.RemoveRange(likes);
+                // 2. Xóa tất cả tin nhắn liên quan (gửi hoặc nhận) cùng file đính kèm
+                var messages = await _context.Messages
+                    .Where(m => m.SenderId == id || m.ReceiverId == id)
+                    .ToListAsync();
+                foreach (var msg in messages)
+                {
+                    DeletePhysicalFile(msg.ImageUrl);
+                }
+                _context.Messages.RemoveRange(messages);
 
-            // 3. Xóa các báo cáo do user này tạo ra
-            var reportsCreated = _context.PostReports.Where(r => r.ReporterId == id);
-            _context.PostReports.RemoveRange(reportsCreated);
+                // 3. Xóa tất cả thông báo mà user nhận hoặc là người thực hiện (Actor)
+                var notifications = await _context.Notifications
+                    .Where(n => n.UserId == id || n.ActorId == id)
+                    .ToListAsync();
+                _context.Notifications.RemoveRange(notifications);
 
-            // 4. Xóa tất cả bình luận do user viết
-            var comments = _context.Comments.Where(c => c.UserId == id);
-            _context.Comments.RemoveRange(comments);
+                // 4. Xóa token khôi phục mật khẩu của người dùng
+                var resetTokens = await _context.PasswordResetTokens
+                    .Where(t => t.UserId == id)
+                    .ToListAsync();
+                _context.PasswordResetTokens.RemoveRange(resetTokens);
 
-            // 5. Xóa tất cả bài viết của user này (kéo theo xóa bình luận, lượt thích, báo cáo trên bài viết này bằng Cascade)
-            var posts = _context.Posts.Where(p => p.UserId == id);
-            _context.Posts.RemoveRange(posts);
+                // 5. Xóa danh sách bài viết đã lưu của user
+                var savedPosts = await _context.SavedPosts
+                    .Where(sp => sp.UserId == id)
+                    .ToListAsync();
+                _context.SavedPosts.RemoveRange(savedPosts);
 
-            // 6. Cuối cùng xóa User
-            _context.Users.Remove(user);
+                // 6. Xóa các báo cáo do user này tạo ra
+                var reportsCreated = await _context.PostReports
+                    .Where(r => r.ReporterId == id)
+                    .ToListAsync();
+                _context.PostReports.RemoveRange(reportsCreated);
 
-            await _context.SaveChangesAsync();
+                // 7. Xóa tất cả bài viết do user này đăng tải (dọn sạch bình luận, ảnh, lượt thích, báo cáo của từng bài)
+                var userPosts = await _context.Posts
+                    .Include(p => p.Images)
+                    .Where(p => p.UserId == id)
+                    .ToListAsync();
 
-            return Json(new { success = true, message = "Đã xóa người dùng thành công!" });
+                foreach (var post in userPosts)
+                {
+                    await DeleteSinglePostInternalAsync(post);
+                }
+                await _context.SaveChangesAsync();
+
+                // 8. Xóa các lượt thích bài viết (PostLikes) mà user đã thả ở các bài viết của người khác
+                var remainingPostLikes = await _context.PostLikes
+                    .Where(l => l.UserId == id)
+                    .ToListAsync();
+                _context.PostLikes.RemoveRange(remainingPostLikes);
+
+                // 9. Xử lý các bình luận do user viết trên bài viết của người khác
+                var userComments = await _context.Comments
+                    .Where(c => c.UserId == id)
+                    .ToListAsync();
+                var userCommentIds = userComments.Select(c => c.CommentId).ToList();
+
+                if (userCommentIds.Any())
+                {
+                    // Ngắt liên kết ParentCommentId cho các câu trả lời của người khác tới bình luận của user này
+                    var externalReplies = await _context.Comments
+                        .Where(c => c.ParentCommentId.HasValue &&
+                                    userCommentIds.Contains(c.ParentCommentId.Value) &&
+                                    !userCommentIds.Contains(c.CommentId))
+                        .ToListAsync();
+                    foreach (var r in externalReplies)
+                    {
+                        r.ParentCommentId = null;
+                    }
+
+                    // Gỡ ParentCommentId của chính các bình luận do user viết
+                    foreach (var c in userComments)
+                    {
+                        c.ParentCommentId = null;
+                    }
+                    await _context.SaveChangesAsync();
+
+                    // Xóa các lượt thích trên các bình luận này
+                    var commentLikesOnUserComments = await _context.CommentLikes
+                        .Where(cl => userCommentIds.Contains(cl.CommentId))
+                        .ToListAsync();
+                    _context.CommentLikes.RemoveRange(commentLikesOnUserComments);
+
+                    // Xóa các bình luận này
+                    _context.Comments.RemoveRange(userComments);
+                    await _context.SaveChangesAsync();
+                }
+
+                // 10. Xóa các lượt thích bình luận (CommentLikes) mà user đã thả tim ở các bình luận khác
+                var userCommentLikes = await _context.CommentLikes
+                    .Where(cl => cl.UserId == id)
+                    .ToListAsync();
+                _context.CommentLikes.RemoveRange(userCommentLikes);
+
+                // 11. Xóa ảnh đại diện vật lý nếu là file tải lên (/uploads/...)
+                if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+                {
+                    DeletePhysicalFile(user.AvatarUrl);
+                }
+
+                // 12. Cuối cùng xóa User
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return Json(new { success = true, message = $"Đã xóa tài khoản \"{user.FullName}\" cùng toàn bộ dữ liệu thành công!" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return Json(new { success = false, message = "Không thể xóa tài khoản do lỗi: " + ex.Message });
+            }
         }
 
         [HttpPost]
@@ -135,16 +339,28 @@ namespace Social_Website.Controllers
         {
             if (!this.IsAdmin()) return Json(new { success = false, message = "Không có quyền truy cập" });
 
-            var post = await _context.Posts.FindAsync(id);
+            var post = await _context.Posts
+                .Include(p => p.Images)
+                .FirstOrDefaultAsync(p => p.PostId == id);
             if (post == null)
             {
                 return Json(new { success = false, message = "Bài viết không tồn tại hoặc đã bị xóa" });
             }
 
-            _context.Posts.Remove(post);
-            await _context.SaveChangesAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await DeleteSinglePostInternalAsync(post);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
-            return Json(new { success = true, message = "Đã xóa bài viết thành công!" });
+                return Json(new { success = true, message = "Đã xóa bài viết thành công!" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return Json(new { success = false, message = "Lỗi khi xóa bài viết: " + ex.Message });
+            }
         }
 
         [HttpPost]
@@ -172,6 +388,8 @@ namespace Social_Website.Controllers
             var report = await _context.PostReports
                 .Include(r => r.Post)
                     .ThenInclude(p => p!.User)
+                .Include(r => r.Post)
+                    .ThenInclude(p => p!.Images)
                 .FirstOrDefaultAsync(r => r.PostReportId == id);
 
             if (report == null)
@@ -182,33 +400,43 @@ namespace Social_Website.Controllers
             var post = report.Post;
             string messageExtra = "";
 
-            if (post != null && post.User != null)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                var author = post.User;
-                author.ApprovedReportCount += 1;
-
-                if (author.ApprovedReportCount >= 3)
+                if (post != null && post.User != null)
                 {
-                    author.IsLocked = true;
-                    author.LockReason = "AutoViolation";
-                    messageExtra = $" Tài khoản \"{author.FullName}\" đã đạt {author.ApprovedReportCount} lần vi phạm và ĐÃ BỊ KHÓA!";
+                    var author = post.User;
+                    author.ApprovedReportCount += 1;
+
+                    if (author.ApprovedReportCount >= 3)
+                    {
+                        author.IsLocked = true;
+                        author.LockReason = "AutoViolation";
+                        messageExtra = $" Tài khoản \"{author.FullName}\" đã đạt {author.ApprovedReportCount} lần vi phạm và ĐÃ BỊ KHÓA!";
+                    }
+                    else
+                    {
+                        messageExtra = $" Tài khoản \"{author.FullName}\" hiện đã có {author.ApprovedReportCount} lần vi phạm (Sẽ bị khóa nếu đạt 3 lần).";
+                    }
+
+                    await DeleteSinglePostInternalAsync(post);
                 }
                 else
                 {
-                    messageExtra = $" Tài khoản \"{author.FullName}\" hiện đã có {author.ApprovedReportCount} lần vi phạm (Sẽ bị khóa nếu đạt 3 lần).";
+                    _context.PostReports.Remove(report);
+                    messageExtra = " Đã dọn dẹp báo cáo.";
                 }
 
-                _context.Posts.Remove(post);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Json(new { success = true, message = "Đã duyệt báo cáo và xử lý bài viết!" + messageExtra });
             }
-            else
+            catch (Exception ex)
             {
-                _context.PostReports.Remove(report);
-                messageExtra = " Đã dọn dẹp báo cáo.";
+                await transaction.RollbackAsync();
+                return Json(new { success = false, message = "Lỗi khi xử lý duyệt báo cáo: " + ex.Message });
             }
-
-            await _context.SaveChangesAsync();
-
-            return Json(new { success = true, message = "Đã duyệt báo cáo và xử lý bài viết!" + messageExtra });
         }
 
         [HttpPost]

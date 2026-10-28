@@ -1,0 +1,428 @@
+@using Social_Website.Helpers
+@model Social_Website.Models.Post
+@{
+    var currentUser = ViewBag.CurrentUser as Social_Website.Models.User;
+    var savedList = ViewBag.SavedPostIds as List<long> ?? new List<long>();
+    bool isSavedPost = savedList.Contains(Model.PostId);
+
+    var postTopReactions = Model.Likes
+        .GroupBy(l => l.ReactionType)
+        .OrderByDescending(g => g.Count())
+        .Select(g => g.Key)
+        .Take(3)
+        .ToList();
+
+    string GetReactionEmoji(string type) => type switch {
+        "Like" => "👍",
+        "Love" => "❤️",
+        "Haha" => "😆",
+        "Wow" => "😮",
+        "Sad" => "😢",
+        "Angry" => "😡",
+        _ => "👍"
+    };
+
+    var userLike = Model.Likes.FirstOrDefault(l => l.UserId == currentUser?.UserId);
+    bool isLiked = userLike != null;
+    string currentReaction = userLike?.ReactionType ?? "Like";
+    
+    string btnClass = isLiked ? (currentReaction switch {
+        "Like" => "text-primary",
+        "Love" => "text-danger",
+        "Haha" => "text-warning",
+        "Wow" => "text-warning",
+        "Sad" => "text-warning",
+        "Angry" => "text-danger",
+        _ => "text-primary"
+    }) : "text-muted";
+    
+    string btnIcon = isLiked ? (currentReaction switch {
+        "Like" => "bi-hand-thumbs-up-fill",
+        "Love" => "bi-heart-fill",
+        "Haha" => "bi-emoji-laughing-fill",
+        "Wow" => "bi-emoji-surprise-fill",
+        "Sad" => "bi-emoji-frown-fill",
+        "Angry" => "bi-emoji-angry-fill",
+        _ => "bi-hand-thumbs-up-fill"
+    }) : "bi-hand-thumbs-up";
+
+    string btnText = isLiked ? (currentReaction switch {
+        "Like" => "Thích",
+        "Love" => "Yêu thích",
+        "Haha" => "Haha",
+        "Wow" => "Wow",
+        "Sad" => "Buồn",
+        "Angry" => "Phẫn nộ",
+        _ => "Thích"
+    }) : "Thích";
+}
+
+<div class="card card-hover mb-4 animate-fade-in-up" id="postCard-@Model.PostId">
+    <div class="card-body p-4">
+        <!-- User header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="/Profile/View/@Model.User?.Username" class="d-flex align-items-center text-decoration-none text-dark hover-underline">
+                <img src="@Model.User?.AvatarUrl" alt="@Model.User?.FullName" class="avatar avatar-sm me-3" />
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark">@Model.User?.FullName</h6>
+                    <span class="text-muted small">@Model.CreatedAt.ToVietnamTimeString()</span>
+                    @if (Model.UpdatedAt != null)
+                    {
+                        <span class="text-muted small ms-1 post-updated-badge" title="Đã chỉnh sửa lúc @Model.UpdatedAt.Value.ToVietnamTimeString()">(đã chỉnh sửa)</span>
+                    }
+                </div>
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots fs-5"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
+                    <li>
+                        <a class="dropdown-item btn-toggle-save-post py-2" href="#" data-post-id="@Model.PostId">
+                            @if (isSavedPost)
+                            {
+                                <i class="bi bi-bookmark-fill me-2 text-warning"></i><span>Bỏ lưu bài viết</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-bookmark me-2"></i><span>Lưu bài viết</span>
+                            }
+                        </a>
+                    </li>
+                    @if (Model.UserId == currentUser?.UserId)
+                    {
+                        <li>
+                            <a class="dropdown-item btn-edit-post-trigger py-2" href="#" data-post-id="@Model.PostId" data-content="@Model.Content" data-has-image="@(!string.IsNullOrEmpty(Model.ImageUrl))" data-image-url="@Model.ImageUrl">
+                                <i class="bi bi-pencil-square me-2 text-primary"></i>Chỉnh sửa bài viết
+                            </a>
+                        </li>
+                    }
+                    @if (Model.UserId != currentUser?.UserId)
+                    {
+                        <li>
+                            <a class="dropdown-item text-warning btn-report-post-trigger py-2" href="#" data-post-id="@Model.PostId">
+                                <i class="bi bi-flag me-2"></i>Báo cáo bài viết
+                            </a>
+                        </li>
+                    }
+                    @if (Model.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
+                    {
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item text-danger btn-delete-post-trigger py-2" href="#" data-post-id="@Model.PostId">
+                                <i class="bi bi-trash3-fill me-2"></i>Xóa bài viết
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <!-- Post content -->
+        @if (!string.IsNullOrEmpty(Model.Content))
+        {
+            <p class="card-text fs-6 mb-3" style="white-space: pre-wrap;">@Model.Content</p>
+        }
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            var imagesList = Model.ImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (imagesList.Length == 1)
+            {
+                <div class="post-image-container mb-3 text-center">
+                    <img src="@imagesList[0]" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm" style="max-height: 500px; width: auto; object-fit: cover; cursor: pointer;" onclick="window.open('@imagesList[0]')" />
+                </div>
+            }
+            else if (imagesList.Length > 1)
+            {
+                <div class="post-images-grid mb-3 row g-2">
+                    @foreach (var img in imagesList)
+                    {
+                        <div class="col-@(imagesList.Length == 2 ? "6" : imagesList.Length == 3 ? "4" : "6")">
+                            <img src="@img" alt="Ảnh bài viết" class="img-fluid rounded shadow-sm w-100" style="height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open('@img')" />
+                        </div>
+                    }
+                </div>
+            }
+        }
+        @if (!string.IsNullOrEmpty(Model.VideoUrl))
+        {
+            <div class="post-video-container mb-3 text-center">
+                <video controls preload="metadata" class="w-100 rounded shadow-sm" style="max-height: 500px;">
+                    <source src="@Model.VideoUrl" type="video/mp4">
+                    <source src="@Model.VideoUrl" type="video/webm">
+                    Trình duyệt không hỗ trợ thẻ video HTML5.
+                </video>
+            </div>
+        }
+
+        <!-- Post Actions summary -->
+        <div class="d-flex justify-content-between text-muted small border-top border-bottom py-2 my-2">
+            <span id="likeCount-@Model.PostId" class="cursor-pointer btn-view-reactions hover-underline" data-post-id="@Model.PostId">
+                <span class="reactions-emojis-container me-1">
+                    @foreach (var r in postTopReactions)
+                    {
+                        <span>@GetReactionEmoji(r)</span>
+                    }
+                </span>
+                <span class="reactions-count-text">@Model.Likes.Count lượt thích</span>
+            </span>
+            <span id="commentCount-@Model.PostId" class="cursor-pointer hover-underline" onclick="$('#commentSection-@Model.PostId').toggle();">
+                <i class="bi bi-chat-dots me-1"></i>@Model.Comments.Count bình luận
+            </span>
+        </div>
+
+        <!-- Post buttons -->
+        <div class="d-flex justify-content-around mb-3 position-relative">
+            <div class="flex-fill position-relative reaction-button-container">
+                <button class="btn btn-link text-decoration-none fw-semibold py-1 w-100 btn-toggle-like @btnClass" data-post-id="@Model.PostId" data-current-reaction="@(isLiked ? currentReaction : "")">
+                    <i class="bi @btnIcon me-1"></i><span>@btnText</span>
+                </button>
+                
+                <!-- Thanh thả cảm xúc phong cách Facebook -->
+                <div class="reactions-flyout shadow border-0 rounded-pill p-2 d-none position-absolute animate-fade-in-up">
+                    <div class="d-flex align-items-center gap-2 px-1">
+                        <span class="reaction-emoji-item" data-reaction="Like" data-post-id="@Model.PostId" title="Thích">👍</span>
+                        <span class="reaction-emoji-item" data-reaction="Love" data-post-id="@Model.PostId" title="Yêu thích">❤️</span>
+                        <span class="reaction-emoji-item" data-reaction="Haha" data-post-id="@Model.PostId" title="Haha">😆</span>
+                        <span class="reaction-emoji-item" data-reaction="Wow" data-post-id="@Model.PostId" title="Wow">😮</span>
+                        <span class="reaction-emoji-item" data-reaction="Sad" data-post-id="@Model.PostId" title="Buồn">😢</span>
+                        <span class="reaction-emoji-item" data-reaction="Angry" data-post-id="@Model.PostId" title="Phẫn nộ">😡</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 flex-fill hover-primary" onclick="$('#commentSection-@Model.PostId').toggle();">
+                <i class="bi bi-chat-dots me-1"></i>Bình luận
+            </button>
+
+            <button class="btn btn-link text-decoration-none text-muted fw-semibold py-1 flex-fill hover-primary btn-share-post-trigger" data-post-id="@Model.PostId" data-post-author="@Model.User?.FullName" data-post-avatar="@Model.User?.AvatarUrl" data-post-content="@(Model.Content ?? "")" data-post-image="@(Model.ImageUrl ?? "")">
+                <i class="bi bi-share me-1"></i>Chia sẻ
+            </button>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="comment-section" id="commentSection-@Model.PostId">
+            <div class="comment-list d-flex flex-column gap-2 mb-3" id="commentList-@Model.PostId">
+                @foreach (var comment in Model.Comments.Where(c => c.ParentCommentId == null).DistinctBy(c => c.CommentId).OrderBy(c => c.CreatedAt))
+                {
+                    var userCommentLike = comment.Likes.FirstOrDefault(l => l.UserId == currentUser?.UserId);
+                    bool isCommentLiked = userCommentLike != null;
+                    string currentCommentReaction = userCommentLike?.ReactionType ?? "Like";
+
+                    string commentBtnClass = isCommentLiked ? (currentCommentReaction switch {
+                        "Like" => "text-primary",
+                        "Love" => "text-danger",
+                        "Haha" => "text-warning",
+                        "Wow" => "text-warning",
+                        "Sad" => "text-warning",
+                        "Angry" => "text-danger",
+                        _ => "text-primary"
+                    }) : "text-muted";
+
+                    string commentBtnIcon = isCommentLiked ? (currentCommentReaction switch {
+                        "Like" => "bi-hand-thumbs-up-fill",
+                        "Love" => "bi-heart-fill",
+                        "Haha" => "bi-emoji-laughing-fill",
+                        "Wow" => "bi-emoji-surprise-fill",
+                        "Sad" => "bi-emoji-frown-fill",
+                        "Angry" => "bi-emoji-angry-fill",
+                        _ => "bi-hand-thumbs-up-fill"
+                    }) : "bi-hand-thumbs-up";
+
+                    string commentBtnText = isCommentLiked ? (currentCommentReaction switch {
+                        "Like" => "Thích",
+                        "Love" => "Yêu thích",
+                        "Haha" => "Haha",
+                        "Wow" => "Wow",
+                        "Sad" => "Buồn",
+                        "Angry" => "Phẫn nộ",
+                        _ => "Thích"
+                    }) : "Thích";
+
+                    <div class="d-flex position-relative animate-fade-in-up" id="commentItem-@comment.CommentId">
+                        <a href="/Profile/View/@comment.User?.Username" class="flex-shrink-0">
+                            <img src="@comment.User?.AvatarUrl" alt="@comment.User?.FullName" class="avatar avatar-sm me-2 mt-1" />
+                        </a>
+                        <div class="w-100">
+                            <div class="comment-box w-100 position-relative">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="/Profile/View/@comment.User?.Username" class="text-decoration-none text-dark hover-underline">
+                                        <span class="fw-bold">@comment.User?.FullName</span>
+                                    </a>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-muted small">@comment.CreatedAt.ToVietnamTimeString()</span>
+                                        @if (comment.UserId == currentUser?.UserId || Model.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
+                                        {
+                                            <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="@comment.CommentId" title="Xóa bình luận" style="font-size: 0.85rem; line-height: 1;">
+                                                <i class="bi bi-trash3"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                                <p class="mb-1 mt-1">@comment.Content</p>
+                                
+                                <!-- Thanh tương tác bình luận -->
+                                <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1 position-relative">
+                                    <div class="position-relative comment-reaction-container">
+                                        <button type="button" class="btn btn-link p-0 text-decoration-none small btn-toggle-comment-like @commentBtnClass" data-comment-id="@comment.CommentId" data-current-reaction="@(isCommentLiked ? currentCommentReaction : "")" style="font-size: 0.78rem;">
+                                            <i class="bi @commentBtnIcon me-1"></i><span>@commentBtnText</span>
+                                        </button>
+                                        
+                                        <!-- Flyout thả cảm xúc bình luận -->
+                                        <div class="comment-reactions-flyout shadow border-0 rounded-pill p-1 d-none position-absolute animate-fade-in-up" style="bottom: 100%; left: 0; z-index: 1050; background: white;">
+                                            <div class="d-flex align-items-center gap-1.5 px-1">
+                                                <span class="comment-reaction-emoji-item" data-reaction="Like" data-comment-id="@comment.CommentId" title="Thích" style="cursor: pointer; font-size: 1.1rem;">👍</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Love" data-comment-id="@comment.CommentId" title="Yêu thích" style="cursor: pointer; font-size: 1.1rem;">❤️</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Haha" data-comment-id="@comment.CommentId" title="Haha" style="cursor: pointer; font-size: 1.1rem;">😆</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Wow" data-comment-id="@comment.CommentId" title="Wow" style="cursor: pointer; font-size: 1.1rem;">😮</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Sad" data-comment-id="@comment.CommentId" title="Buồn" style="cursor: pointer; font-size: 1.1rem;">😢</span>
+                                                <span class="comment-reaction-emoji-item" data-reaction="Angry" data-comment-id="@comment.CommentId" title="Phẫn nộ" style="cursor: pointer; font-size: 1.1rem;">😡</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <span class="text-muted small cursor-pointer btn-view-comment-reactions hover-underline" id="commentLikesCount-@comment.CommentId" data-comment-id="@comment.CommentId" style="font-size: 0.78rem;">
+                                        @if (comment.Likes.Any())
+                                        {
+                                            <span>@GetReactionEmoji(comment.Likes.First().ReactionType)</span>
+                                            <span>@comment.Likes.Count</span>
+                                        }
+                                    </span>
+                                    
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="@comment.CommentId" data-user-name="@comment.User?.FullName" data-post-id="@Model.PostId" style="font-size: 0.78rem;">
+                                        <i class="bi bi-reply-fill me-1"></i>Trả lời
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Danh sách phản hồi (Replies) -->
+                            <div class="reply-list ms-4 ps-3 border-start mt-2 d-flex flex-column gap-2 @(comment.Replies.Any() ? "" : "d-none")" id="replyList-@comment.CommentId">
+                                @foreach (var reply in comment.Replies.DistinctBy(r => r.CommentId).OrderBy(r => r.CreatedAt))
+                                {
+                                    var userReplyLike = reply.Likes.FirstOrDefault(l => l.UserId == currentUser?.UserId);
+                                    bool isReplyLiked = userReplyLike != null;
+                                    string currentReplyReaction = userReplyLike?.ReactionType ?? "Like";
+
+                                    string replyBtnClass = isReplyLiked ? (currentReplyReaction switch {
+                                        "Like" => "text-primary",
+                                        "Love" => "text-danger",
+                                        "Haha" => "text-warning",
+                                        "Wow" => "text-warning",
+                                        "Sad" => "text-warning",
+                                        "Angry" => "text-danger",
+                                        _ => "text-primary"
+                                    }) : "text-muted";
+
+                                    string replyBtnIcon = isReplyLiked ? (currentReplyReaction switch {
+                                        "Like" => "bi-hand-thumbs-up-fill",
+                                        "Love" => "bi-heart-fill",
+                                        "Haha" => "bi-emoji-laughing-fill",
+                                        "Wow" => "bi-emoji-surprise-fill",
+                                        "Sad" => "bi-emoji-frown-fill",
+                                        "Angry" => "bi-emoji-angry-fill",
+                                        _ => "bi-hand-thumbs-up-fill"
+                                    }) : "bi-hand-thumbs-up";
+
+                                    string replyBtnText = isReplyLiked ? (currentReplyReaction switch {
+                                        "Like" => "Thích",
+                                        "Love" => "Yêu thích",
+                                        "Haha" => "Haha",
+                                        "Wow" => "Wow",
+                                        "Sad" => "Buồn",
+                                        "Angry" => "Phẫn nộ",
+                                        _ => "Thích"
+                                    }) : "Thích";
+
+                                    <div class="d-flex position-relative animate-fade-in-up" id="commentItem-@reply.CommentId">
+                                        <a href="/Profile/View/@reply.User?.Username" class="flex-shrink-0">
+                                            <img src="@reply.User?.AvatarUrl" alt="@reply.User?.FullName" class="avatar avatar-xs me-2 mt-1" style="width: 28px; height: 28px;" />
+                                        </a>
+                                        <div class="comment-box w-100 position-relative bg-light p-2 rounded">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <a href="/Profile/View/@reply.User?.Username" class="text-decoration-none text-dark hover-underline">
+                                                    <span class="fw-bold small">@reply.User?.FullName</span>
+                                                </a>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="text-muted" style="font-size: 0.72rem;">@reply.CreatedAt.ToVietnamTimeString()</span>
+                                                    @if (reply.UserId == currentUser?.UserId || Model.UserId == currentUser?.UserId || (currentUser != null && currentUser.IsAdmin))
+                                                    {
+                                                        <button type="button" class="btn btn-link text-danger p-0 ms-1 btn-delete-comment-trigger" data-comment-id="@reply.CommentId" title="Xóa phản hồi" style="font-size: 0.8rem; line-height: 1;">
+                                                            <i class="bi bi-trash3"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <p class="mb-1 mt-1 small">@reply.Content</p>
+                                            
+                                            <!-- Thanh tương tác phản hồi -->
+                                            <div class="d-flex align-items-center gap-3 pt-1 border-top border-light mt-1 position-relative">
+                                                <div class="position-relative comment-reaction-container">
+                                                    <button type="button" class="btn btn-link p-0 text-decoration-none small btn-toggle-comment-like @replyBtnClass" data-comment-id="@reply.CommentId" data-current-reaction="@(isReplyLiked ? currentReplyReaction : "")" style="font-size: 0.75rem;">
+                                                        <i class="bi @replyBtnIcon me-1"></i><span>@replyBtnText</span>
+                                                    </button>
+                                                    
+                                                    <div class="comment-reactions-flyout shadow border-0 rounded-pill p-1 d-none position-absolute animate-fade-in-up" style="bottom: 100%; left: 0; z-index: 1050; background: white;">
+                                                        <div class="d-flex align-items-center gap-1.5 px-1">
+                                                            <span class="comment-reaction-emoji-item" data-reaction="Like" data-comment-id="@reply.CommentId" title="Thích" style="cursor: pointer; font-size: 1rem;">👍</span>
+                                                            <span class="comment-reaction-emoji-item" data-reaction="Love" data-comment-id="@reply.CommentId" title="Yêu thích" style="cursor: pointer; font-size: 1rem;">❤️</span>
+                                                            <span class="comment-reaction-emoji-item" data-reaction="Haha" data-comment-id="@reply.CommentId" title="Haha" style="cursor: pointer; font-size: 1rem;">😆</span>
+                                                            <span class="comment-reaction-emoji-item" data-reaction="Wow" data-comment-id="@reply.CommentId" title="Wow" style="cursor: pointer; font-size: 1rem;">😮</span>
+                                                            <span class="comment-reaction-emoji-item" data-reaction="Sad" data-comment-id="@reply.CommentId" title="Buồn" style="cursor: pointer; font-size: 1rem;">😢</span>
+                                                            <span class="comment-reaction-emoji-item" data-reaction="Angry" data-comment-id="@reply.CommentId" title="Phẫn nộ" style="cursor: pointer; font-size: 1rem;">😡</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <span class="text-muted small cursor-pointer btn-view-comment-reactions hover-underline" id="commentLikesCount-@reply.CommentId" data-comment-id="@reply.CommentId" style="font-size: 0.75rem;">
+                                                    @if (reply.Likes.Any())
+                                                    {
+                                                        <span>@GetReactionEmoji(reply.Likes.First().ReactionType)</span>
+                                                        <span>@reply.Likes.Count</span>
+                                                    }
+                                                </span>
+
+                                                <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small btn-reply-comment-trigger" data-comment-id="@comment.CommentId" data-user-name="@reply.User?.FullName" data-post-id="@Model.PostId" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-reply-fill me-1"></i>Trả lời
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Khung nhập phản hồi (Reply Input) -->
+                            <div class="reply-input-container ms-4 ps-3 border-start mt-2 d-none" id="replyFormContainer-@comment.CommentId">
+                                <form class="reply-form d-flex align-items-center" data-parent-id="@comment.CommentId" data-post-id="@Model.PostId">
+                                    <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-xs me-2" style="width: 28px; height: 28px;" />
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control rounded-pill reply-input bg-light border-0 px-3" placeholder="Viết câu trả lời..." id="replyInput-@comment.CommentId" required />
+                                        <button class="btn btn-primary rounded-pill ms-1 px-3" type="submit">
+                                            <i class="bi bi-send-fill" style="font-size: 0.8rem;"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Khung nhập bình luận chính -->
+            <form class="create-comment-form" data-post-id="@Model.PostId">
+                <div class="d-flex align-items-center gap-2">
+                    <img src="@currentUser?.AvatarUrl" alt="@currentUser?.FullName" class="avatar avatar-sm flex-shrink-0" />
+                    <div class="comment-input-wrapper flex-grow-1">
+                        <input type="text" class="form-control comment-input" id="commentInput-@Model.PostId" placeholder="Viết bình luận..." required autocomplete="off" />
+                        <button type="submit" class="comment-send-btn" title="Gửi bình luận">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Cảnh báo từ cấm trong bình luận -->
+                <div class="comment-validation-alert alert alert-danger d-none mt-2 mb-0 py-1 px-3 animate-fade-in-up" id="commentAlert-@Model.PostId" style="border-radius: 12px; font-size: 0.82rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i><span></span>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

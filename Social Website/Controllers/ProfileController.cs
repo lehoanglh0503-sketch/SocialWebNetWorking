@@ -40,11 +40,27 @@ namespace Social_Website.Controllers
             var totalFriends = await _context.Friendships.CountAsync(f => 
                 (f.RequestorId == user.UserId || f.ReceiverId == user.UserId) && f.IsAccepted);
 
+            ViewBag.CurrentUser = user;
+            ViewBag.SavedPostIds = await _context.SavedPosts
+                .Where(s => s.UserId == user.UserId)
+                .Select(s => s.PostId)
+                .ToListAsync();
+
             var posts = await _context.Posts
+                .AsSplitQuery()
                 .Include(p => p.User)
                 .Include(p => p.Images)
                 .Include(p => p.Likes)
-                .Include(p => p.Comments).ThenInclude(c => c.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Likes)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Replies)
+                        .ThenInclude(r => r.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Replies)
+                        .ThenInclude(r => r.Likes)
                 .Where(p => p.UserId == user.UserId)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
@@ -120,11 +136,28 @@ namespace Social_Website.Controllers
                 }
             }
 
+            var currentUser = await _context.Users.FindAsync(currentUserId.Value);
+            ViewBag.CurrentUser = currentUser;
+            ViewBag.SavedPostIds = await _context.SavedPosts
+                .Where(s => s.UserId == currentUserId.Value)
+                .Select(s => s.PostId)
+                .ToListAsync();
+
             var posts = await _context.Posts
+                .AsSplitQuery()
                 .Include(p => p.User)
                 .Include(p => p.Images)
                 .Include(p => p.Likes)
-                .Include(p => p.Comments).ThenInclude(c => c.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Likes)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Replies)
+                        .ThenInclude(r => r.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Replies)
+                        .ThenInclude(r => r.Likes)
                 .Where(p => p.UserId == targetUser.UserId)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
@@ -146,7 +179,6 @@ namespace Social_Website.Controllers
                 FriendsList = friendsList
             };
 
-            ViewBag.CurrentUser = await _context.Users.FindAsync(currentUserId.Value);
             return View("ViewProfile", viewModel);
         }
 

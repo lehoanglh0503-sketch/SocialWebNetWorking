@@ -22,5 +22,18 @@
 **/node_modules/
 **/bower_components/
 
-## Publishing outputs
+## Publishing & Deploy outputs
 **/publish/
+publish_deploy/
+deploy.zip
+*.zip
+
+## Temporary / Scratch files
+scratch/
+graphify-out/
+
+## Large media uploads
+*.mp4
+*.mov
+*.avi
+Social Website/wwwroot/uploads/videos/*.mp4

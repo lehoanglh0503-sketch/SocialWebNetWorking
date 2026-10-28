@@ -1,15 +1,25 @@
 # Connectify - Mạng Xã Hội Thời Gian Thực (ASP.NET Core MVC & SignalR)
 
+> 🌐 **Website trực tuyến (Live Demo):** [http://socialweb.runasp.net/Auth/Login](http://socialweb.runasp.net/Auth/Login)  
+> 
+> 🔑 **Tài khoản dùng thử (mặc định):**
+> * **Người dùng mẫu 1**: `vietanh` / Mật khẩu: `123456`
+> * **Người dùng mẫu 2**: `lanhuong` / Mật khẩu: `123456`
+> * **Người dùng mẫu 3**: `quanghuy` / Mật khẩu: `123456`
+
 Connectify là một ứng dụng mạng xã hội thu nhỏ được xây dựng trên nền tảng **ASP.NET Core 6.0 MVC**, kết hợp **Entity Framework Core** để tương tác với cơ sở dữ liệu **Microsoft SQL Server**, và sử dụng **SignalR** để cập nhật trạng thái bài đăng, bình luận cũng như lượt thích hoàn toàn theo thời gian thực (Real-time). Giao diện ứng dụng được thiết kế tối ưu và hiện đại bằng **Bootstrap 5**.
 
 ---
 
-## 🚀 Các Tính Năng Chính
-*   **Đăng ký & Đăng nhập**: Quản lý tài khoản người dùng an toàn thông qua mã hoá mật khẩu SHA-256 và lưu trữ phiên đăng nhập (Session).
-*   **Đăng trạng thái (Post)**: Chia sẻ các dòng suy nghĩ động, hỗ trợ hiển thị thời gian đăng thực tế.
-*   **Bình luận (Comment)**: Trao đổi ý kiến bên dưới mỗi bài viết, hiển thị phản hồi tức thời.
-*   **Thích & Thả tim (Like)**: Tương tác thả tim đỏ và hiển thị cập nhật số lượt thích thời gian thực cho mọi người cùng online.
-*   **Quản lý Bạn bè (Friends)**: Đề xuất kết bạn mới, gửi yêu cầu kết bạn, phê duyệt yêu cầu chờ duyệt, và huỷ kết bạn linh hoạt.
+## 🚀 Các Tính Năng Nổi Bật
+*   **🌐 Trải nghiệm Trực tuyến**: Đã deploy lên môi trường Cloud tại [http://socialweb.runasp.net/Auth/Login](http://socialweb.runasp.net/Auth/Login).
+*   **Đăng ký, Đăng nhập & Bảo mật**: Quản lý tài khoản an toàn thông qua mã hoá mật khẩu SHA-256, lưu trữ phiên đăng nhập (Session) và chức năng **Quên mật khẩu / Khôi phục mật khẩu qua Email (OTP)**.
+*   **Đăng trạng thái đa phương tiện**: Chia sẻ bài viết với văn bản, hỗ trợ tải lên **nhiều hình ảnh** (tối đa 5 ảnh) và **video clip ngắn**.
+*   **Tương tác thời gian thực (SignalR)**: Thích/thả tim bài viết, đăng bình luận tức thời hiển thị ngay cho mọi người đang online.
+*   **Chỉnh sửa & Quản lý bài viết**: Chỉnh sửa nội dung bài viết đã đăng, xoá bài viết, **Lưu bài viết yêu thích** và xem lại ở trang **Bài viết đã lưu**.
+*   **Hồ sơ cá nhân & Thống kê tương tác**: Cập nhật ảnh đại diện, tiểu sử; các ô thống kê (bài viết, bạn bè) có thể bấm trực tiếp để xem danh sách; hỗ trợ xem trang cá nhân công khai của người dùng khác.
+*   **Quản lý Bạn bè & Nhắn tin**: Đề xuất kết bạn, gửi/hủy yêu cầu kết bạn, nhắn tin trò chuyện 1-1 theo thời gian thực (hỗ trợ gửi ảnh trong tin nhắn).
+*   **Báo cáo vi phạm & Bảng quản trị Admin**: Báo cáo bài viết vi phạm nội dung; Quản trị viên theo dõi thống kê toàn hệ thống, kiểm duyệt báo cáo, khoá/mở khoá tài khoản người dùng với lý do chi tiết.
 
 ---
 

@@ -192,18 +192,27 @@
             });
 
             // Xóa người dùng
-            $(document).on("click", ".btn-delete-user", function () {
-                if (confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này sẽ xóa vĩnh viễn người dùng cùng toàn bộ bài viết, bình luận, lượt thích và bạn bè của họ. Không thể khôi phục!")) {
-                    const userId = $(this).data("user-id");
+            $(document).on("click", ".btn-delete-user", function (e) {
+                e.preventDefault();
+                if (confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này sẽ xóa vĩnh viễn người dùng cùng toàn bộ bài viết, bình luận, lượt thích, tin nhắn và dữ liệu liên quan của họ. Không thể khôi phục!")) {
+                    const $btn = $(this);
+                    const userId = $btn.data("user-id") || $btn.attr("data-user-id");
                     const $row = $(`#userRow-${userId}`);
                     
+                    const originalHtml = $btn.html();
+                    $btn.prop("disabled", true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Đang xóa...');
+
                     $.post("/Admin/DeleteUser", { id: userId }, function (res) {
                         if (res.success) {
                             alert(res.message);
                             $row.fadeOut(300, function() { $(this).remove(); });
                         } else {
                             alert(res.message);
+                            $btn.prop("disabled", false).html(originalHtml);
                         }
+                    }).fail(function (xhr, status, error) {
+                        alert("Lỗi máy chủ khi gửi yêu cầu xóa người dùng: " + (xhr.responseJSON?.message || error || "Lỗi không xác định"));
+                        $btn.prop("disabled", false).html(originalHtml);
                     });
                 }
             });

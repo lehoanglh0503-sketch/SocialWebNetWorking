@@ -214,10 +214,23 @@
         </div>
     }
 
+    @if (userId != null)
+    {
+        <partial name="_PostModals" />
+    }
+
+    <script>
+        window.currentUserId = "@userId";
+        window.currentFullName = "@fullName";
+        window.currentAvatarUrl = "@avatarUrl";
+        window.currentUsername = "@username";
+        window.isCurrentUserAdmin = @(isAdmin == "True" ? "true" : "false");
+    </script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.25/signalr.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/post-interactions.js" asp-append-version="true"></script>
     @if (TempData["AccountWarning"] != null)
     {
         <script>
