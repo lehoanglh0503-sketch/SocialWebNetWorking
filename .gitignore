@@ -28,9 +28,11 @@ publish_deploy/
 deploy.zip
 *.zip
 
-## Temporary / Scratch files
+## Temporary / Scratch files & Doc generators
 scratch/
 graphify-out/
+generate_docs.py
+convert_to_pdf.ps1
 
 ## Large media uploads
 *.mp4
